@@ -154,14 +154,59 @@ app.get('/api/checkers/products', async (req, res) => {
   } catch (err) { relay(res, err); }
 });
 
+function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+// DataMart's number probe is a live vendor-cart check; it occasionally reports
+// itself as busy (code: probe_overloaded, or a 503 VERIFY_UNAVAILABLE) rather
+// than failing the check outright. These are worth one quiet retry before we
+// bother the customer with anything.
+const VERIFY_RETRY_CODES = ['probe_overloaded', 'VERIFY_UNAVAILABLE'];
+const VERIFY_RETRY_ATTEMPTS = 2;
+const VERIFY_RETRY_DELAY_MS = 1500;
+
+function isRetryableVerifyError(err) {
+  const code = err.response?.data?.code;
+  return VERIFY_RETRY_CODES.includes(code) || err.response?.status === 503;
+}
+
 app.post('/api/verify-number', verifyThrottle, async (req, res) => {
   try {
     const { phoneNumber } = req.body;
     if (!isValidPhone(phoneNumber)) {
       return res.status(400).json({ status: 'error', message: 'Enter a valid 10-digit number, e.g. 0551234567.' });
     }
-    const r = await datamart.verifyNumber(phoneNumber);
-    res.json(r);
+
+    let lastErr;
+    for (let attempt = 1; attempt <= VERIFY_RETRY_ATTEMPTS; attempt++) {
+      try {
+        const r = await datamart.verifyNumber(phoneNumber);
+        return res.json(r);
+      } catch (err) {
+        lastErr = err;
+        if (!isRetryableVerifyError(err) || attempt === VERIFY_RETRY_ATTEMPTS) break;
+        await sleep(VERIFY_RETRY_DELAY_MS);
+      }
+    }
+
+    if (isRetryableVerifyError(lastErr)) {
+      return res.status(503).json({
+        status: 'error',
+        code: lastErr.response?.data?.code || 'VERIFY_UNAVAILABLE',
+        message: "The network check is busy right now. We tried automatically — please try again in a few seconds.",
+      });
+    }
+
+    const code = lastErr.response?.data?.code;
+    if (code === 'RATE_LIMIT_EXCEEDED') {
+      return res.status(429).json({
+        status: 'error',
+        code,
+        message: 'Number checks are limited right now — please try again shortly.',
+        retryAfter: lastErr.response?.data?.retryAfter,
+      });
+    }
+
+    relay(res, lastErr);
   } catch (err) { relay(res, err); }
 });
 
