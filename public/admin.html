@@ -159,7 +159,7 @@
      STATS
      ============================================================ */
   .stats-grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));
     gap:16px; margin-bottom:24px;
   }
   .stat-card{
@@ -235,17 +235,77 @@
     cursor:pointer; transition:all 0.2s;
   }
   .btn-sm{ padding:5px 12px; font-size:11px; }
+  
   .btn-retry{
     background:var(--warn); color:#1A1A2E;
   }
   .btn-retry:hover{ transform:translateY(-1px); box-shadow:0 2px 8px rgba(245,158,11,0.3); }
   .btn-retry:disabled{ opacity:0.5; cursor:not-allowed; }
 
+  .btn-delete{
+    background:var(--bad); color:#FFFFFF;
+  }
+  .btn-delete:hover{ transform:translateY(-1px); box-shadow:0 2px 8px rgba(239,68,68,0.3); }
+  .btn-delete:disabled{ opacity:0.5; cursor:not-allowed; }
+
   .btn-refresh{
     background:var(--panel-2); color:var(--text);
     border:1px solid var(--line);
   }
   .btn-refresh:hover{ border-color:var(--brand-yellow); }
+
+  .action-cell{
+    display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+  }
+
+  /* ============================================================
+     MODAL / CONFIRM DIALOG
+     ============================================================ */
+  .modal-overlay{
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1000; padding:20px;
+    animation:fadeIn 0.2s ease;
+  }
+  .modal-overlay.hidden{ display:none; }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+
+  .modal{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:32px;
+    max-width:420px; width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    animation:slideUp 0.2s ease;
+  }
+  @keyframes slideUp{ from{ transform:translateY(20px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+
+  .modal .icon{ font-size:48px; text-align:center; margin-bottom:12px; }
+  .modal h3{ font-family:'Sora',sans-serif; font-size:20px; text-align:center; color:var(--text); margin:0 0 8px; }
+  .modal p{ text-align:center; color:var(--text-soft); font-size:14px; margin:0 0 24px; }
+  .modal .ref{ 
+    font-family:'IBM Plex Mono',monospace; 
+    background:var(--panel-2); padding:8px 12px; 
+    border-radius:6px; text-align:center; 
+    margin-bottom:20px; font-size:13px;
+    color:var(--text);
+  }
+  .modal-actions{
+    display:flex; gap:10px;
+  }
+  .modal-actions .btn{
+    flex:1; justify-content:center; padding:12px;
+    font-size:14px;
+  }
+  .modal-actions .btn-cancel{
+    background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line);
+  }
+  .modal-actions .btn-cancel:hover{ border-color:var(--text-soft); }
+  .modal-actions .btn-confirm-delete{
+    background:var(--bad); color:#FFFFFF;
+  }
+  .modal-actions .btn-confirm-delete:hover{ box-shadow:0 4px 16px rgba(239,68,68,0.3); }
 
   /* ============================================================
      EMPTY STATE
@@ -258,6 +318,28 @@
   .empty-state h3{ font-family:'Sora',sans-serif; color:var(--text); margin:0 0 6px; }
 
   /* ============================================================
+     TOAST NOTIFICATION
+     ============================================================ */
+  .toast{
+    position:fixed; bottom:24px; right:24px;
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px 20px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.2);
+    z-index:2000;
+    max-width:360px;
+    animation:slideUp 0.3s ease;
+    display:flex; align-items:center; gap:12px;
+  }
+  .toast.hidden{ display:none; }
+  .toast.success{ border-left:4px solid var(--good); }
+  .toast.error{ border-left:4px solid var(--bad); }
+  .toast .msg{ font-size:14px; color:var(--text); }
+  .toast .close-toast{
+    background:none; border:none; color:var(--text-soft);
+    cursor:pointer; font-size:18px;
+  }
+
+  /* ============================================================
      RESPONSIVE
      ============================================================ */
   @media (max-width:640px){
@@ -267,6 +349,8 @@
     .container{ padding:16px 16px 40px; }
     .topbar{ padding:10px 16px; }
     .status-pill{ display:none; }
+    .action-cell{ flex-direction:column; gap:4px; }
+    .modal{ padding:24px 20px; }
   }
 </style>
 </head>
@@ -332,7 +416,7 @@
             <th>Amount</th>
             <th>Phone</th>
             <th>Created</th>
-            <th style="text-align:center;">Action</th>
+            <th style="text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -340,6 +424,30 @@
     </div>
   </div>
 
+</div>
+
+<!-- ============================================================
+     CONFIRM DELETE MODAL
+     ============================================================ -->
+<div class="modal-overlay hidden" id="deleteModal">
+  <div class="modal">
+    <div class="icon">⚠️</div>
+    <h3>Delete Order?</h3>
+    <p>This action cannot be undone. Are you sure you want to delete this order?</p>
+    <div class="ref" id="deleteRef">YMDP-XXXXXX-XXXX</div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="cancelDelete">Cancel</button>
+      <button class="btn btn-confirm-delete" id="confirmDelete">🗑️ Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TOAST NOTIFICATION
+     ============================================================ -->
+<div class="toast hidden" id="toast">
+  <span class="msg" id="toastMsg">Success!</span>
+  <button class="close-toast" id="closeToast">✕</button>
 </div>
 
 <script>
@@ -361,9 +469,26 @@ themeToggle.addEventListener('click', () => {
 });
 
 // ============================================================
+// TOAST NOTIFICATION
+// ============================================================
+function showToast(message, type = 'success'){
+  const toast = document.getElementById('toast');
+  const msg = document.getElementById('toastMsg');
+  toast.className = 'toast ' + type;
+  msg.textContent = message;
+  toast.classList.remove('hidden');
+  setTimeout(() => { toast.classList.add('hidden'); }, 4000);
+}
+
+document.getElementById('closeToast').addEventListener('click', () => {
+  document.getElementById('toast').classList.add('hidden');
+});
+
+// ============================================================
 // ADMIN LOGIC
 // ============================================================
 let ADMIN_KEY = '';
+let deleteTarget = null;
 const params = new URLSearchParams(window.location.search);
 if (params.get('key')) ADMIN_KEY = params.get('key');
 
@@ -398,6 +523,22 @@ function getStatusLabel(status){
   return map[status] || status;
 }
 
+// ============================================================
+// DELETE ORDER
+// ============================================================
+async function deleteOrder(reference){
+  try {
+    await adminApi(`/admin/api/orders/${reference}`, { method: 'DELETE' });
+    showToast(`✅ Order ${reference} deleted successfully!`, 'success');
+    await loadOrders();
+  } catch (e) {
+    showToast('❌ Failed to delete: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+// LOAD ORDERS
+// ============================================================
 async function loadOrders(){
   const r = await adminApi('/admin/api/orders');
   const list = r.data || [];
@@ -465,38 +606,78 @@ async function loadOrders(){
       <td class="mono">GH₵ ${money(o.amount)}</td>
       <td class="mono">${o.phoneNumber || '—'}</td>
       <td class="mono">${formatDate(o.createdAt)}</td>
-      <td style="text-align:center;">
-        ${o.status === 'fulfillment_failed' ? 
-          `<button class="btn btn-retry btn-sm retry" data-ref="${o.reference}">⟳ Retry</button>` : 
-          '—'
-        }
+      <td>
+        <div class="action-cell">
+          ${o.status === 'fulfillment_failed' ? 
+            `<button class="btn btn-retry btn-sm retry" data-ref="${o.reference}">⟳ Retry</button>` : 
+            ''
+          }
+          <button class="btn btn-delete btn-sm delete-btn" data-ref="${o.reference}">🗑️</button>
+        </div>
       </td>
     </tr>
   `).join('');
 
+  // Retry buttons
   document.querySelectorAll('.retry').forEach(btn => {
     btn.addEventListener('click', async () => {
       btn.disabled = true; 
       btn.textContent = '⟳ Retrying…';
       try {
         await adminApi(`/admin/api/orders/${btn.dataset.ref}/retry`, { method: 'POST' });
+        showToast('✅ Retry successful!', 'success');
         await loadOrders();
       } catch (e) {
-        alert('Retry failed: ' + e.message);
+        showToast('❌ Retry failed: ' + e.message, 'error');
         btn.disabled = false; 
         btn.textContent = '⟳ Retry';
       }
     });
   });
+
+  // Delete buttons
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deleteTarget = btn.dataset.ref;
+      document.getElementById('deleteRef').textContent = deleteTarget;
+      document.getElementById('deleteModal').classList.remove('hidden');
+    });
+  });
 }
 
+// ============================================================
+// MODAL CONTROLS
+// ============================================================
+document.getElementById('cancelDelete').addEventListener('click', () => {
+  document.getElementById('deleteModal').classList.add('hidden');
+  deleteTarget = null;
+});
+
+document.getElementById('confirmDelete').addEventListener('click', async () => {
+  if (deleteTarget) {
+    document.getElementById('deleteModal').classList.add('hidden');
+    await deleteOrder(deleteTarget);
+    deleteTarget = null;
+  }
+});
+
+// Close modal on overlay click
+document.getElementById('deleteModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) {
+    document.getElementById('deleteModal').classList.add('hidden');
+    deleteTarget = null;
+  }
+});
+
+// ============================================================
+// LOGIN
+// ============================================================
 async function enter(){
   ADMIN_KEY = document.getElementById('keyInput').value.trim() || ADMIN_KEY;
   try {
     await loadOrders();
     document.getElementById('gate').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
-    // Auto-refresh every 15 seconds
     if (window.refreshInterval) clearInterval(window.refreshInterval);
     window.refreshInterval = setInterval(loadOrders, 15000);
   } catch (e) {

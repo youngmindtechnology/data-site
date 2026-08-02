@@ -181,6 +181,23 @@ app.post('/api/verify-number', verifyThrottle, async (req, res) => {
   } catch (err) { relay(res, err); }
 });
 
+// DELETE order by reference
+app.delete('/admin/api/orders/:reference', requireAdmin, (req, res) => {
+  const reference = req.params.reference;
+  const order = orders.get(reference);
+  
+  if (!order) {
+    return res.status(404).json({ status: 'error', message: 'Order not found.' });
+  }
+  
+  // Remove the order from the store
+  const all = orders.readAll();
+  delete all[reference];
+  orders.writeAll(all);
+  
+  res.json({ status: 'success', message: 'Order deleted successfully.' });
+});
+
 /* ============================================================
    ORDERS — customer starts a purchase, we start a Paystack charge
    ============================================================ */
