@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Confirmation — Young Mind Data Plug</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F0B1E; --panel:#181228; --panel-2:#1F1834; --line:#31294A;
+    --text:#F3F1FB; --text-soft:#A79FC7; --accent:#C6FF3D; --accent-ink:#0F1400;
+    --good:#3DDC84; --bad:#FF5C72; --warn:#FFB84D;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:
+      radial-gradient(ellipse 700px 400px at 15% -5%, rgba(198,255,61,0.10), transparent),
+      radial-gradient(ellipse 600px 400px at 100% 10%, rgba(45,108,223,0.12), transparent),
+      var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  h1,h3{ font-family:'Sora',sans-serif; letter-spacing:-0.01em; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+  .wrap{ width:100%; max-width:440px; }
+  .brand{
+    display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:24px;
+    font-family:'Sora',sans-serif; font-weight:800; font-size:15px; color:var(--text-soft);
+  }
+  .plug-mark{
+    width:26px; height:26px; border-radius:7px;
+    background:linear-gradient(135deg, var(--accent), #7CFF3D);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent-ink); font-weight:800; font-size:13px; flex-shrink:0;
+  }
+  .receipt{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:28px 24px; position:relative;
+  }
+  .receipt::before{
+    content:""; position:absolute; left:20px; right:20px; top:0; height:1px;
+    background:repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 11px);
+  }
+  .receipt.ok{ border-color:rgba(61,220,132,0.4); }
+  .receipt.err{ border-color:rgba(255,92,114,0.4); }
+  .receipt.warn{ border-color:rgba(255,184,77,0.4); }
+  .icon{ width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:8px auto 16px; font-size:22px; }
+  .icon.ok{ background:rgba(61,220,132,0.15); color:var(--good); }
+  .icon.err{ background:rgba(255,92,114,0.15); color:var(--bad); }
+  .icon.warn{ background:rgba(255,184,77,0.15); color:var(--warn); }
+  h1{ font-size:19px; text-align:center; margin:0 0 4px; }
+  .sub{ color:var(--text-soft); font-size:13px; text-align:center; margin:0 0 20px; }
+  .row{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:13.5px; padding:7px 0; border-bottom:1px solid var(--line); }
+  .row:last-of-type{ border-bottom:none; }
+  .row span:first-child{ color:var(--text-soft); }
+  .note{ font-size:13px; color:var(--text-soft); margin-top:14px; line-height:1.5; }
+  .spinner{
+    width:32px; height:32px; border-radius:50%; margin:8px auto 16px;
+    border:3px solid rgba(198,255,61,0.2); border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .actions{ display:flex; gap:10px; margin-top:22px; }
+  .btn{
+    flex:1; text-align:center; appearance:none; border:none; border-radius:9px;
+    padding:12px 16px; font-family:'Sora',sans-serif; font-weight:700; font-size:13.5px;
+    cursor:pointer; text-decoration:none; display:block;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-ghost{ background:none; border:1px solid var(--line); color:var(--text); }
+  .badge{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+    padding:2px 8px; border-radius:20px; margin-left:6px; vertical-align:middle;
+  }
+  .badge.completed{ background:var(--good); color:#082A17; }
+  .badge.failed{ background:var(--bad); color:#3A0008; }
+  .badge.refunded{ background:var(--line); color:var(--text-soft); }
+  .badge.pending, .badge.waiting, .badge.processing{ background:var(--warn); color:#2E1D00; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><div class="plug-mark">Y</div>Young Mind Data Plug</div>
+  <div class="receipt" id="receipt">
+    <div class="spinner"></div>
+    <h1>Checking your payment…</h1>
+    <p class="sub">This usually takes a few seconds.</p>
+  </div>
+</div>
+
+<script>
+function money(n){ const num = Number(n); return isNaN(num) ? n : num.toFixed(2); }
+function networkLabel(net){ return { YELLO: 'MTN', TELECEL: 'Telecel', AT_PREMIUM: 'AirtelTigo' }[net] || net; }
+
+// Human-friendly label for DataMart's live delivery status, shown next to
+// "Bundle sent" for fulfilled data orders. Falls back to the raw value for
+// anything not in this list, so an unexpected status still shows something
+// rather than nothing.
+function liveStatusLabel(s){
+  return {
+    pending: 'Pending', waiting: 'Waiting', processing: 'Processing',
+    completed: 'Delivered to network', failed: 'Failed', refunded: 'Refunded',
+  }[s] || s;
+}
+
+async function api(path){
+  const res = await fetch(path);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const err = new Error(data.message || 'Request failed'); err.data = data; throw err; }
+  return data;
+}
+
+function describe(d){
+  if (d.status === 'fulfilled') {
+    if (d.type === 'data') {
+      // liveStatus comes straight from DataMart's own /order-status/:reference
+      // check (pending/waiting/processing/completed/failed/refunded) — it's
+      // the bundle's real delivery progress on their side, separate from our
+      // own order.status which just means "we successfully placed the order".
+      const liveRow = d.liveStatus
+        ? `<div class="row"><span>Delivery status</span><span>${liveStatusLabel(d.liveStatus)}<span class="badge ${d.liveStatus}">${d.liveStatus}</span></span></div>`
+        : '';
+      return { cls: 'ok', icon: '✓', title: 'Data delivered', body: `
+        <div class="row"><span>Bundle</span><span>${networkLabel(d.network)} · ${d.capacity}GB</span></div>
+        <div class="row"><span>Sent to</span><span>${d.phoneNumber}</span></div>
+        <div class="row"><span>Amount</span><span>GH₵ ${money(d.amount)}</span></div>
+        <div class="row"><span>Order ref</span><span>${d.reference}</span></div>
+        ${liveRow}`,
+        note: 'Save this reference to track your order later.' };
+    }
+    return { cls: 'ok', icon: '✓', title: 'Checker delivered', body: `
+      <div class="row"><span>Checker</span><span>${d.checkerType}</span></div>
+      <div class="row"><span>Serial</span><span>${d.serialNumber}</span></div>
+      <div class="row"><span>PIN</span><span>${d.pin}</span></div>
+      <div class="row"><span>Order ref</span><span>${d.reference}</span></div>`,
+      note: 'Save these now — they\'re shown once here.' };
+  }
+  if (d.status === 'payment_failed') {
+    return { cls: 'err', icon: '✕', title: 'Payment not completed', body: '', note: 'This payment did not go through. No charge was made — feel free to try again.' };
+  }
+  if (d.status === 'fulfillment_failed') {
+    const itemRow = d.type === 'data'
+      ? `<div class="row"><span>Bundle</span><span>${networkLabel(d.network)} · ${d.capacity}GB</span></div>`
+      : `<div class="row"><span>Checker</span><span>${d.checkerType}</span></div>`;
+    return { cls: 'warn', icon: '!', title: 'Payment received', body: `
+      ${itemRow}
+      <div class="row"><span>Sent to</span><span>${d.phoneNumber}</span></div>
+      <div class="row"><span>Amount</span><span>GH₵ ${money(d.amount)}</span></div>
+      <div class="row"><span>Order ref</span><span>${d.reference}</span></div>`,
+      note: d.note };
+  }
+  return { cls: 'warn', icon: '', title: 'Processing', body: '', note: 'Confirming your payment — checking again shortly.' };
+}
+
+function render(d){
+  const { cls, icon, title, body, note } = describe(d);
+  document.getElementById('receipt').className = 'receipt ' + cls;
+  document.getElementById('receipt').innerHTML = `
+    ${icon ? `<div class="icon ${cls}">${icon}</div>` : '<div class="spinner"></div>'}
+    <h1>${title}</h1>
+    ${body}
+    ${note ? `<p class="note">${note}</p>` : ''}
+    <div class="actions">
+      <a href="/" class="btn btn-ghost">Back home</a>
+      <a href="/?tab=track" class="btn btn-primary">Track this order</a>
+    </div>
+  `;
+}
+
+async function run(){
+  const ref = new URLSearchParams(window.location.search).get('order');
+  if (!ref) { window.location.href = '/'; return; }
+
+  const poll = async () => {
+    try {
+      const r = await api('/api/orders/' + encodeURIComponent(ref));
+      render(r.data);
+      return ['fulfilled', 'payment_failed', 'fulfillment_failed'].includes(r.data.status);
+    } catch (e) {
+      document.getElementById('receipt').className = 'receipt err';
+      document.getElementById('receipt').innerHTML = `<div class="icon err">✕</div><h1>Order not found</h1><p class="note">${e.data?.message || e.message}</p><div class="actions"><a href="/" class="btn btn-primary">Back home</a></div>`;
+      return true;
+    }
+  };
+
+  let done = await poll();
+  let attempts = 0;
+  const interval = setInterval(async () => {
+    attempts++;
+    if (done || attempts > 20) { clearInterval(interval); return; }
+    done = await poll();
+  }, 2500);
+}
+
+run();
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Young Mind Data Plug — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F0B1E; --panel:#181228; --panel-2:#1F1834; --line:#31294A;
+    --text:#F3F1FB; --text-soft:#A79FC7; --accent:#C6FF3D;
+    --good:#3DDC84; --bad:#FF5C72; --warn:#FFB84D;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
+  h1,h2{ font-family:'Sora',sans-serif; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+  main{ max-width:1000px; margin:0 auto; padding:32px 24px 80px; }
+  .gate{ max-width:360px; margin:80px auto; text-align:center; }
+  .gate input{
+    width:100%; padding:12px 14px; margin:14px 0;
+    border:1px solid var(--line); border-radius:8px;
+    background:var(--panel-2); color:var(--text); font-family:'IBM Plex Mono',monospace;
+  }
+  .btn{
+    appearance:none; border:none; border-radius:8px; padding:12px 18px;
+    background:var(--accent); color:#0F1400; font-family:'Sora',sans-serif; font-weight:700;
+    cursor:pointer; font-size:13.5px;
+  }
+  .btn-sm{ padding:7px 12px; font-size:12px; }
+  .stats{ display:flex; gap:14px; margin-bottom:24px; flex-wrap:wrap; }
+  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 20px; min-width:140px; }
+  .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); }
+  .stat .value{ font-family:'Sora',sans-serif; font-weight:700; font-size:22px; margin-top:4px; }
+  table{ width:100%; border-collapse:collapse; background:var(--panel); border-radius:10px; overflow:hidden; }
+  th, td{ text-align:left; padding:10px 12px; font-size:12.5px; border-bottom:1px solid var(--line); }
+  th{ color:var(--text-soft); text-transform:uppercase; font-size:10.5px; letter-spacing:0.05em; }
+  td.mono{ font-size:12px; }
+  .badge{ padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; font-family:'IBM Plex Mono',monospace; }
+  .badge.fulfilled{ background:var(--good); color:#082A17; }
+  .badge.fulfillment_failed{ background:var(--bad); color:#3A0008; }
+  .badge.payment_failed{ background:var(--line); color:var(--text-soft); }
+  .badge.paid, .badge.pending{ background:var(--warn); color:#2E1D00; }
+  #app.hidden{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <h1>Admin</h1>
+  <p style="color:var(--text-soft); font-size:13px;">Enter your admin key to view orders.</p>
+  <input type="password" id="keyInput" placeholder="Admin key">
+  <button class="btn" id="enterBtn">Enter</button>
+  <p id="gateError" style="color:var(--bad); font-size:12.5px;"></p>
+</div>
+
+<main id="app" class="hidden">
+  <h1>Orders</h1>
+  <div class="stats" id="stats"></div>
+  <table>
+    <thead>
+      <tr><th>Reference</th><th>Type</th><th>Status</th><th>Amount</th><th>Phone</th><th>Created</th><th></th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+
+<script>
+let ADMIN_KEY = '';
+const params = new URLSearchParams(window.location.search);
+if (params.get('key')) ADMIN_KEY = params.get('key');
+
+async function adminApi(path, opts = {}){
+  const res = await fetch(path + (path.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(ADMIN_KEY), {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || 'Request failed');
+  return data;
+}
+
+function money(n){ const num = Number(n); return isNaN(num) ? n : num.toFixed(2); }
+
+async function loadOrders(){
+  const r = await adminApi('/admin/api/orders');
+  const list = r.data;
+
+  const counts = { fulfilled: 0, fulfillment_failed: 0, pending: 0, revenue: 0 };
+  list.forEach(o => {
+    if (o.status === 'fulfilled') { counts.fulfilled++; counts.revenue += Number(o.amount || 0); }
+    if (o.status === 'fulfillment_failed') counts.fulfillment_failed++;
+    if (o.status === 'pending' || o.status === 'paid') counts.pending++;
+  });
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="label">Fulfilled</div><div class="value">${counts.fulfilled}</div></div>
+    <div class="stat"><div class="label">Needs attention</div><div class="value" style="color:${counts.fulfillment_failed ? 'var(--bad)' : 'var(--text)'}">${counts.fulfillment_failed}</div></div>
+    <div class="stat"><div class="label">In progress</div><div class="value">${counts.pending}</div></div>
+    <div class="stat"><div class="label">Revenue (fulfilled)</div><div class="value">GH₵ ${money(counts.revenue)}</div></div>
+  `;
+
+  document.getElementById('rows').innerHTML = list.map(o => `
+    <tr>
+      <td class="mono">${o.reference}</td>
+      <td>${o.type === 'data' ? (o.network || '') + ' ' + (o.capacity || '') + 'GB' : o.checkerType}</td>
+      <td><span class="badge ${o.status}">${o.status}</span></td>
+      <td class="mono">GH₵ ${money(o.amount)}</td>
+      <td class="mono">${o.phoneNumber || ''}</td>
+      <td class="mono">${new Date(o.createdAt).toLocaleString()}</td>
+      <td>${o.status === 'fulfillment_failed' ? `<button class="btn btn-sm retry" data-ref="${o.reference}">Retry</button>` : ''}</td>
+    </tr>
+  `).join('');
+
+  document.querySelectorAll('.retry').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = 'Retrying…';
+      try {
+        await adminApi(`/admin/api/orders/${btn.dataset.ref}/retry`, { method: 'POST' });
+        await loadOrders();
+      } catch (e) {
+        alert('Retry failed: ' + e.message);
+        btn.disabled = false; btn.textContent = 'Retry';
+      }
+    });
+  });
+}
+
+async function enter(){
+  ADMIN_KEY = document.getElementById('keyInput').value.trim() || ADMIN_KEY;
+  try {
+    await loadOrders();
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    setInterval(loadOrders, 15000);
+  } catch (e) {
+    document.getElementById('gateError').textContent = 'Wrong key or server error.';
+  }
+}
+
+document.getElementById('enterBtn').addEventListener('click', enter);
+document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') enter(); });
+if (ADMIN_KEY) enter();
+</script>
+</body>
+</html>

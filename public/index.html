@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Young Mind Data Plug</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     THEME VARIABLES
+     ============================================================ */
+  :root {
+    --brand-blue: #2D6CDF;
+    --brand-yellow: #FFCB05;
+    --brand-white: #FFFFFF;
+    
+    --bg: #F5F7FA;
+    --panel: #FFFFFF;
+    --panel-2: #F0F2F5;
+    --line: #E5E7EB;
+    --text: #1A1A2E;
+    --text-soft: #6B7280;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --radius: 16px;
+    
+    --good: #10B981;
+    --bad: #EF4444;
+    --warn: #F59E0B;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0F0B1E;
+    --panel: #181228;
+    --panel-2: #1F1834;
+    --line: #31294A;
+    --text: #F3F1FB;
+    --text-soft: #A79FC7;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    --good: #3DDC84;
+    --bad: #FF5C72;
+    --warn: #FFB84D;
+  }
+
+  /* ============================================================
+     BASE
+     ============================================================ */
+  *{ box-sizing:border-box; margin:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ============================================================
+     TOP BAR
+     ============================================================ */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background: var(--panel);
+    border-bottom:1px solid var(--line);
+    padding:12px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Sora',sans-serif;
+    font-weight:800; font-size:18px;
+    color: var(--text);
+    text-decoration:none;
+  }
+  .logo-icon{
+    width:32px; height:32px;
+    border-radius:8px;
+    background: var(--brand-yellow);
+    display:flex; align-items:center; justify-content:center;
+    color:#1A1A2E; font-weight:800; font-size:16px;
+  }
+  .logo span{ color: var(--brand-yellow); }
+  .logo small{
+    display:block; font-size:10px; font-weight:500;
+    color:var(--text-soft); font-family:'Inter',sans-serif;
+  }
+  .topbar-actions{ display:flex; align-items:center; gap:12px; }
+  .theme-toggle{
+    width:36px; height:36px; border-radius:50%;
+    border:1px solid var(--line); background:var(--panel-2);
+    color:var(--text-soft); cursor:pointer; font-size:18px;
+    transition:all 0.3s;
+  }
+  .theme-toggle:hover{ border-color:var(--brand-yellow); color:var(--text); }
+  .status-pill{
+    font-size:11px; color:var(--text-soft);
+    border:1px solid var(--line); border-radius:20px;
+    padding:5px 14px; display:flex; align-items:center; gap:6px;
+  }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); animation:pulse 1.8s infinite; }
+  @keyframes pulse{ 0%{ opacity:1; } 50%{ opacity:0.3; } 100%{ opacity:1; } }
+
+  /* ============================================================
+     MAIN
+     ============================================================ */
+  .container{ max-width:820px; margin:0 auto; padding:0 20px 60px; }
+  
+  .hero{ padding:32px 0 20px; }
+  .hero h1{
+    font-family:'Sora',sans-serif;
+    font-size:clamp(28px,4vw,40px);
+    color: var(--text);
+    margin:0 0 6px;
+  }
+  .hero h1 .highlight{ color:var(--brand-yellow); }
+  .hero p{
+    color:var(--text-soft);
+    font-size:15px;
+    max-width:440px;
+    margin:0;
+  }
+
+  /* ============================================================
+     TABS
+     ============================================================ */
+  .tabs{
+    display:flex; gap:4px;
+    margin:24px 0 20px;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .tab{
+    background:none; border:none;
+    padding:10px 4px 12px;
+    margin-right:20px;
+    font-family:'Sora',sans-serif;
+    font-weight:600; font-size:14px;
+    color:var(--text-soft); cursor:pointer;
+    border-bottom:2px solid transparent;
+    transition:color 0.3s, border-color 0.3s;
+  }
+  .tab[aria-selected="true"]{
+    color:var(--text);
+    border-bottom-color:var(--brand-yellow);
+  }
+  .tab:hover{ color:var(--text); }
+  .hidden{ display:none !important; }
+
+  /* ============================================================
+     PANELS
+     ============================================================ */
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px 24px;
+    margin-bottom:16px;
+    box-shadow:var(--shadow);
+    transition:background 0.3s, border-color 0.3s;
+  }
+  .panel-title{
+    font-family:'Sora',sans-serif;
+    font-size:15px; font-weight:700;
+    margin:0 0 4px;
+    color:var(--text);
+  }
+  .panel-sub{
+    color:var(--text-soft);
+    font-size:13px;
+    margin:0 0 16px;
+  }
+
+  /* ============================================================
+     FIELDS
+     ============================================================ */
+  .field{ margin-bottom:14px; }
+  .field label{
+    display:block; font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.05em;
+    color:var(--text-soft); margin-bottom:4px;
+  }
+  .field input{
+    width:100%; padding:10px 14px;
+    border:1px solid var(--line); border-radius:8px;
+    font-size:14px; font-family:'Inter',sans-serif;
+    background:var(--panel-2); color:var(--text);
+    transition:border-color 0.3s, background 0.3s;
+  }
+  .field input::placeholder{ color:#6B7280; opacity:0.6; }
+  .field input:focus{ outline:none; border-color:var(--brand-yellow); }
+  .field .hint{ font-size:11px; color:var(--text-soft); margin-top:4px; }
+
+  /* ============================================================
+     NETWORK & PACKAGE GRIDS
+     ============================================================ */
+  .net-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .net-btn{
+    border:1.5px solid var(--line); background:var(--panel-2);
+    border-radius:10px; padding:12px; cursor:pointer;
+    font-family:'Sora',sans-serif; font-weight:700; font-size:13px;
+    text-align:center; color:var(--text-soft);
+    transition:all 0.2s;
+  }
+  .net-btn:hover:not(:disabled){ transform:translateY(-1px); }
+  .net-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .net-btn[data-active="true"][data-net="YELLO"]{ border-color:#FFCB05; background:rgba(255,203,5,0.1); color:#FFCB05; }
+  .net-btn[data-active="true"][data-net="TELECEL"]{ border-color:#E2001A; background:rgba(226,0,26,0.1); color:#FF6B7A; }
+  .net-btn[data-active="true"][data-net="AT_PREMIUM"]{ border-color:#2D6CDF; background:rgba(45,108,223,0.12); color:#6FA0FF; }
+
+  .pkg-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; margin-top:4px; }
+  .pkg-btn{
+    border:1.5px solid var(--line); background:var(--panel-2);
+    border-radius:10px; padding:10px; cursor:pointer; text-align:center;
+    transition:all 0.2s;
+  }
+  .pkg-btn .cap{ font-family:'Sora',sans-serif; font-weight:700; font-size:15px; display:block; color:var(--text); }
+  .pkg-btn .price{ font-size:12px; color:var(--text-soft); display:block; margin-top:2px; }
+  .pkg-btn[data-active="true"]{ border-color:var(--brand-yellow); background:rgba(255,203,5,0.08); }
+  .pkg-btn[data-active="true"] .price{ color:var(--brand-yellow); }
+
+  /* ============================================================
+     BUTTONS
+     ============================================================ */
+  .btn{
+    border:none; border-radius:10px;
+    padding:12px 20px;
+    font-family:'Sora',sans-serif;
+    font-weight:700; font-size:14px;
+    cursor:pointer; width:100%;
+    transition:all 0.3s;
+  }
+  .btn-primary{
+    background:var(--brand-yellow);
+    color:#1A1A2E;
+  }
+  .btn-primary:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 4px 16px rgba(255,203,5,0.3); }
+  .btn-primary:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .spinner{
+    width:14px; height:14px; border-radius:50%;
+    border:2px solid rgba(26,26,46,0.2); border-top-color:#1A1A2E;
+    animation:spin .6s linear infinite; display:inline-block;
+  }
+  [data-theme="dark"] .spinner{
+    border-color:rgba(243,241,251,0.2); border-top-color:#F3F1FB;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ============================================================
+     RESULTS
+     ============================================================ */
+  .result{ margin-top:14px; display:none; }
+  .result.show{ display:block; }
+  .receipt{
+    background:var(--panel-2); border-radius:10px;
+    padding:16px 18px; border:1px solid var(--line);
+  }
+  .receipt.ok{ border-color:rgba(16,185,129,0.3); }
+  .receipt.err{ border-color:rgba(239,68,68,0.3); }
+  .receipt.warn{ border-color:rgba(245,158,11,0.3); }
+  .receipt h3{ font-size:12px; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 8px; }
+  .receipt.ok h3{ color:var(--good); }
+  .receipt.err h3{ color:var(--bad); }
+  .receipt.warn h3{ color:var(--warn); }
+  .receipt .row{ display:flex; justify-content:space-between; font-size:13px; padding:3px 0; }
+  .receipt .row span:first-child{ color:var(--text-soft); }
+  .receipt p{ font-size:13px; color:var(--text-soft); margin:8px 0 0; }
+
+  .badge{
+    font-size:10px; font-weight:600; padding:2px 10px;
+    border-radius:20px; display:inline-block;
+  }
+  .badge.completed, .badge.fulfilled, .badge.delivered{ background:var(--good); color:#fff; }
+  .badge.failed{ background:var(--bad); color:#fff; }
+  .badge.pending, .badge.processing{ background:var(--warn); color:#fff; }
+
+  /* ============================================================
+     TRACKER
+     ============================================================ */
+  #trackerContainer{ min-height:360px; width:100%; }
+
+  /* ============================================================
+     CHECKER GRID
+     ============================================================ */
+  #checkerGrid.net-grid-2{ grid-template-columns:repeat(2,1fr); }
+  #checkerGrid.net-grid-3{ grid-template-columns:repeat(3,1fr); }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  footer{ text-align:center; color:var(--text-soft); font-size:12px; padding:20px 0; }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width:600px){
+    .topbar{ padding:10px 16px; }
+    .container{ padding:0 14px 40px; }
+    .panel{ padding:16px; }
+    .net-grid{ grid-template-columns:1fr; }
+    #checkerGrid.net-grid-2, #checkerGrid.net-grid-3{ grid-template-columns:1fr; }
+    .tabs .tab{ margin-right:12px; font-size:13px; padding:8px 2px 10px; }
+    .status-pill{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<div class="topbar">
+  <a href="#" class="logo">
+    <div class="logo-icon">Y</div>
+    <div>
+      Young Mind
+      <span>Data Plug</span>
+      <small>MTN · TELECEL · AIRTELTIGO</small>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="status-pill"><span class="dot"></span>Live</div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN
+     ============================================================ -->
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Data bundles,<br><span class="highlight">paid &amp; delivered.</span></h1>
+    <p>MTN, Telecel, AirtelTigo — plus WAEC &amp; BECE checkers.</p>
+  </div>
+
+  <!-- Order Banner -->
+  <div id="orderBanner"></div>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button class="tab" data-tab="buy" role="tab" aria-selected="true">Buy Data</button>
+    <button class="tab" data-tab="verify" role="tab" aria-selected="false">Verify</button>
+    <button class="tab" data-tab="checker" role="tab" aria-selected="false">Checkers</button>
+    <button class="tab" data-tab="track" role="tab" aria-selected="false">Track</button>
+    <button class="tab" data-tab="tracker" role="tab" aria-selected="false">📡 Live</button>
+  </div>
+
+  <!-- ============================================================
+       TAB: BUY DATA
+       ============================================================ -->
+  <section id="tab-buy" class="tab-panel">
+    <div class="panel">
+      <div class="panel-title">Choose network</div>
+      <div class="net-grid">
+        <button class="net-btn" data-net="YELLO" data-active="true">MTN</button>
+        <button class="net-btn" data-net="TELECEL">Telecel</button>
+        <button class="net-btn" data-net="AT_PREMIUM">AirtelTigo</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Pick a bundle</div>
+      <div class="panel-sub" id="pkgSub">Loading packages…</div>
+      <div class="pkg-grid" id="pkgGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Send to</div>
+      <div class="field">
+        <label>Phone number</label>
+        <input type="tel" id="buyPhone" placeholder="0551234567" maxlength="10">
+        <div class="hint">The data will be sent to this number.</div>
+      </div>
+      <button class="btn btn-primary" id="buyBtn" disabled>
+        <span id="buyBtnLabel">Select a bundle</span>
+      </button>
+      <div class="result" id="buyResult"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TAB: VERIFY
+       ============================================================ -->
+  <section id="tab-verify" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-title">Check a number</div>
+      <div class="panel-sub">Free — no charge. New MTN SIMs need activation first.</div>
+      <div class="field">
+        <label>Phone number</label>
+        <input type="tel" id="verifyPhone" placeholder="0551234567" maxlength="10">
+      </div>
+      <button class="btn btn-primary" id="verifyBtn">Check</button>
+      <div class="result" id="verifyResult"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TAB: CHECKERS
+       ============================================================ -->
+  <section id="tab-checker" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-title">Choose a checker</div>
+      <div class="panel-sub" id="checkerSub">Loading…</div>
+      <div class="net-grid" id="checkerGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Deliver to</div>
+      <div class="field">
+        <label>Phone number</label>
+        <input type="tel" id="checkerPhone" placeholder="0241234567" maxlength="10">
+        <div class="hint">SMS with PIN will be sent here.</div>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-soft); margin-bottom:14px; cursor:pointer;">
+        <input type="checkbox" id="skipSms" style="width:16px;height:16px;">
+        Show PIN here instead of SMS
+      </label>
+      <button class="btn btn-primary" id="checkerBtn" disabled>
+        <span id="checkerBtnLabel">Select a checker</span>
+      </button>
+      <div class="result" id="checkerResult"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TAB: TRACK
+       ============================================================ -->
+  <section id="tab-track" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-title">Find your order</div>
+      <div class="panel-sub">Enter the reference from your receipt.</div>
+      
+      <div class="field">
+        <label>What did you buy?</label>
+        <div class="net-grid" style="grid-template-columns:1fr 1fr;">
+          <button class="net-btn" id="trackTypeData" data-active="true">📶 Data</button>
+          <button class="net-btn" id="trackTypeChecker" data-active="false">🎓 Checker</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Reference</label>
+        <input type="text" id="trackReference" placeholder="YM... or DataMart Ref" style="text-transform:uppercase;">
+        <div class="hint" id="trackHint">Use YM... or GN-... reference.</div>
+      </div>
+
+      <button class="btn btn-primary" id="trackBtn">Find order</button>
+      <div class="result" id="trackResult"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TAB: LIVE TRACKER
+       ============================================================ -->
+  <section id="tab-tracker" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-title">📡 Live Delivery Tracker</div>
+      <div class="panel-sub">See your orders in real time.</div>
+      <div id="trackerContainer"></div>
+    </div>
+  </section>
+
+  <footer>Young Mind Data Plug · Payments by Paystack</footer>
+</div>
+
+<!-- ============================================================
+     DATAMART TRACKER WIDGET
+     ============================================================ -->
+<script src="https://api.datamartgh.shop/widgets/delivery-tracker.js"
+        data-api-key="f9c65cb7d4c87c176406336793d7d40a927c7d533adeaf86622dc1654ee80f2e"
+        data-theme="dark"
+        data-container="trackerContainer"
+        data-poll="15">
+</script>
+
+<!-- ============================================================
+     SCRIPT
+     ============================================================ -->
+<script>
+// ============================================================
+// THEME TOGGLE
+// ============================================================
+const themeToggle = document.getElementById('themeToggle');
+const html = document.documentElement;
+const saved = localStorage.getItem('theme') || 'dark';
+html.setAttribute('data-theme', saved);
+themeToggle.textContent = saved === 'dark' ? '🌙' : '☀️';
+
+themeToggle.addEventListener('click', () => {
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  themeToggle.textContent = next === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('theme', next);
+  const tracker = document.querySelector('script[src*="delivery-tracker.js"]');
+  if (tracker) tracker.setAttribute('data-theme', next);
+});
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  network: 'YELLO',
+  packages: {},
+  selectedPkg: null,
+  checkerProducts: [],
+  selectedChecker: null,
+  feePercent: 0,
+  passFeeToCustomer: true,
+  trackType: 'data'
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function money(n){ return Number(n).toFixed(2); }
+function netLabel(n){ return { YELLO:'MTN', TELECEL:'Telecel', AT_PREMIUM:'AirtelTigo' }[n]||n; }
+
+function setResult(el, cls, html){
+  el.className = 'result show';
+  el.innerHTML = `<div class="receipt ${cls}">${html}</div>`;
+}
+function clearResult(el){ el.className = 'result'; el.innerHTML = ''; }
+
+async function api(path, opts = {}){
+  const res = await fetch(path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok){ const e = new Error(data.message||'Error'); e.data=data; throw e; }
+  return data;
+}
+
+// ============================================================
+// DESCRIBE ORDER
+// ============================================================
+function describeOrder(d){
+  const status = d.status || d.orderStatus || 'unknown';
+  const done = ['fulfilled','completed','delivered'].includes(status);
+  const failed = ['payment_failed','fulfillment_failed','failed'].includes(status);
+  const wait = ['pending','processing','waiting'].includes(status);
+
+  let rows = `
+    <div class="row"><span>Reference</span><span>${d.reference||d.orderReference||'N/A'}</span></div>
+    <div class="row"><span>Status</span><span class="badge ${status}">${status}</span></div>
+  `;
+  if (d.capacity || d.network) {
+    rows += `<div class="row"><span>Bundle</span><span>${netLabel(d.network)} ${d.capacity||''}GB</span></div>`;
+  }
+  if (d.checkerType) {
+    rows += `<div class="row"><span>Checker</span><span>${d.checkerType}</span></div>`;
+    if (d.serialNumber) rows += `<div class="row"><span>Serial</span><span>${d.serialNumber}</span></div>`;
+    if (d.pin) rows += `<div class="row"><span>PIN</span><span>${d.pin}</span></div>`;
+  }
+  if (d.phoneNumber || d.recipient) {
+    rows += `<div class="row"><span>Phone</span><span>${d.phoneNumber||d.recipient}</span></div>`;
+  }
+  if (d.createdAt || d.created_at) {
+    const date = new Date(d.createdAt||d.created_at);
+    rows += `<div class="row"><span>Date</span><span>${date.toLocaleDateString()}</span></div>`;
+  }
+  if (d.message || d.note) rows += `<p>${d.message||d.note}</p>`;
+
+  if (done) return { cls:'ok', title:'✅ Done', body:rows };
+  if (failed) return { cls:'err', title:'❌ Failed', body:rows };
+  if (wait) return { cls:'warn', title:'⏳ Processing', body:rows };
+  return { cls:'warn', title:'📋 Found', body:rows };
+}
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected','false'));
+    tab.setAttribute('aria-selected','true');
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.getElementById('tab-'+tab.dataset.tab).classList.remove('hidden');
+  });
+});
+
+// ============================================================
+// BUY DATA
+// ============================================================
+const pkgGrid = document.getElementById('pkgGrid');
+const pkgSub = document.getElementById('pkgSub');
+const buyBtn = document.getElementById('buyBtn');
+const buyLabel = document.getElementById('buyBtnLabel');
+const buyResult = document.getElementById('buyResult');
+
+document.querySelectorAll('#tab-buy .net-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#tab-buy .net-btn').forEach(b => b.dataset.active='false');
+    btn.dataset.active='true';
+    state.network = btn.dataset.net;
+    state.selectedPkg = null;
+    buyBtn.disabled = true;
+    buyLabel.textContent = 'Select a bundle';
+    renderPackages();
+  });
+});
+
+async function loadPackages(){
+  try {
+    const r = await api('/api/packages');
+    state.packages = r.data || {};
+    renderPackages();
+  } catch(e){ pkgSub.textContent = 'Error loading packages'; }
+}
+
+function renderPackages(){
+  const list = state.packages[state.network] || [];
+  pkgSub.textContent = list.length ? `${list.length} bundles` : 'No packages';
+  pkgGrid.innerHTML = '';
+  list.forEach(pkg => {
+    const b = document.createElement('button');
+    b.className = 'pkg-btn';
+    b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(pkg.price)}</span>`;
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.pkg-btn').forEach(x => x.dataset.active='false');
+      b.dataset.active='true';
+      state.selectedPkg = pkg;
+      buyBtn.disabled = false;
+      buyLabel.textContent = `Pay GH₵ ${money(pkg.payable||pkg.price)}`;
+    });
+    pkgGrid.appendChild(b);
+  });
+}
+
+buyBtn.addEventListener('click', async () => {
+  const phone = document.getElementById('buyPhone').value.trim();
+  clearResult(buyResult);
+  if (!/^0\d{9}$/.test(phone)) return setResult(buyResult,'err','<h3>Invalid phone</h3><p>Use 10 digits starting with 0.</p>');
+  if (!state.selectedPkg) return;
+
+  const orig = buyLabel.textContent;
+  buyBtn.disabled = true;
+  buyLabel.innerHTML = '<span class="spinner"></span> Starting…';
+
+  try {
+    const r = await api('/api/orders/init', {
+      method: 'POST',
+      body: { 
+        type:'data', 
+        network:state.network, 
+        capacity:state.selectedPkg.capacity, 
+        phoneNumber:phone,
+        email: phone + '@paystack.com'  // Use phone as email for Paystack
+      }
+    });
+    window.location.href = r.data.authorizationUrl;
+  } catch(e) {
+    setResult(buyResult,'err',`<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
+    buyBtn.disabled = false;
+    buyLabel.textContent = orig;
+  }
+});
+
+// ============================================================
+// VERIFY
+// ============================================================
+document.getElementById('verifyBtn').addEventListener('click', async () => {
+  const phone = document.getElementById('verifyPhone').value.trim();
+  const res = document.getElementById('verifyResult');
+  clearResult(res);
+  if (!/^0\d{9}$/.test(phone)) return setResult(res,'err','<h3>Invalid phone</h3>');
+
+  const orig = document.getElementById('verifyBtn').textContent;
+  document.getElementById('verifyBtn').disabled = true;
+  document.getElementById('verifyBtn').innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const r = await api('/api/verify-number', { method:'POST', body:{ phoneNumber:phone } });
+    const d = r.data;
+    const cls = d.servable ? 'ok' : 'warn';
+    const badge = d.recommendation === 'sell_any' ? '✅ Ready' : '⚠️ Needs activation';
+    setResult(res, cls, `<h3>${d.network} ${badge}</h3><div class="row"><span>Number</span><span>${d.phoneNumber}</span></div><p>${d.message}</p>`);
+  } catch(e) {
+    setResult(res,'err',`<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
+  } finally {
+    document.getElementById('verifyBtn').disabled = false;
+    document.getElementById('verifyBtn').textContent = orig;
+  }
+});
+
+// ============================================================
+// CHECKERS
+// ============================================================
+const checkerGrid = document.getElementById('checkerGrid');
+const checkerSub = document.getElementById('checkerSub');
+const checkerBtn = document.getElementById('checkerBtn');
+const checkerLabel = document.getElementById('checkerBtnLabel');
+const checkerResult = document.getElementById('checkerResult');
+
+async function loadCheckerProducts(){
+  try {
+    const r = await api('/api/checkers/products');
+    state.checkerProducts = r.data || [];
+    renderCheckerProducts();
+  } catch(e){ checkerSub.textContent = 'Error loading checkers'; }
+}
+
+function renderCheckerProducts(){
+  checkerSub.textContent = 'Select a checker type';
+  checkerGrid.innerHTML = '';
+  const count = state.checkerProducts.length;
+  checkerGrid.className = 'net-grid' + (count <= 2 ? ' net-grid-2' : ' net-grid-3');
+
+  state.checkerProducts.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'net-btn';
+    b.disabled = !p.inStock;
+    b.innerHTML = `${p.name}<br><span style="font-size:11px;font-weight:400;">GH₵ ${money(p.price)} ${p.inStock ? '✅' : '❌'}</span>`;
+    if (p.inStock) {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('#checkerGrid .net-btn').forEach(x => x.dataset.active='false');
+        b.dataset.active='true';
+        state.selectedChecker = p;
+        checkerBtn.disabled = false;
+        checkerLabel.textContent = `Pay GH₵ ${money(p.payable||p.price)}`;
+      });
+    }
+    checkerGrid.appendChild(b);
+  });
+}
+
+checkerBtn.addEventListener('click', async () => {
+  const phone = document.getElementById('checkerPhone').value.trim();
+  const skip = document.getElementById('skipSms').checked;
+  clearResult(checkerResult);
+  if (!/^0\d{9}$/.test(phone)) return setResult(checkerResult,'err','<h3>Invalid phone</h3>');
+  if (!state.selectedChecker) return;
+
+  const orig = checkerLabel.textContent;
+  checkerBtn.disabled = true;
+  checkerLabel.innerHTML = '<span class="spinner"></span> Starting…';
+
+  try {
+    const r = await api('/api/orders/init', {
+      method:'POST',
+      body:{ 
+        type:'checker', 
+        checkerType:state.selectedChecker.name, 
+        phoneNumber:phone,
+        email: phone + '@paystack.com',  // Use phone as email for Paystack
+        skipSms:skip 
+      }
+    });
+    window.location.href = r.data.authorizationUrl;
+  } catch(e) {
+    setResult(checkerResult,'err',`<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
+    checkerBtn.disabled = false;
+    checkerLabel.textContent = orig;
+  }
+});
+
+// ============================================================
+// ORDER STATUS BANNER
+// ============================================================
+async function checkOrderStatus(){
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('order');
+  if (!ref) return;
+
+  const banner = document.getElementById('orderBanner');
+  banner.innerHTML = `<div class="panel"><div class="receipt"><h3>Order ${ref}</h3><p><span class="spinner"></span> Checking…</p></div></div>`;
+
+  const poll = async () => {
+    try {
+      const r = await api('/api/orders/'+encodeURIComponent(ref));
+      const { cls, title, body } = describeOrder(r.data);
+      banner.innerHTML = `<div class="panel"><div class="receipt ${cls}"><h3>${title}</h3>${body}</div></div>`;
+      const s = r.data.status||r.data.orderStatus||'';
+      return ['fulfilled','completed','payment_failed','fulfillment_failed','failed'].includes(s);
+    } catch(e) {
+      banner.innerHTML = `<div class="panel"><div class="receipt err"><h3>Error</h3><p>${e.data?.message||e.message}</p></div></div>`;
+      return true;
+    }
+  };
+
+  let done = await poll();
+  let attempts = 0;
+  const interval = setInterval(async () => {
+    attempts++;
+    if (done || attempts > 20) { clearInterval(interval); return; }
+    done = await poll();
+  }, 2500);
+}
+
+// ============================================================
+// TRACK ORDER
+// ============================================================
+const trackBtn = document.getElementById('trackBtn');
+const trackResult = document.getElementById('trackResult');
+const trackRefInput = document.getElementById('trackReference');
+
+document.getElementById('trackTypeData').addEventListener('click', function(){
+  state.trackType = 'data';
+  document.getElementById('trackTypeData').dataset.active='true';
+  document.getElementById('trackTypeChecker').dataset.active='false';
+  document.getElementById('trackHint').textContent = 'Use YM... or GN-... reference.';
+  clearResult(trackResult);
+});
+document.getElementById('trackTypeChecker').addEventListener('click', function(){
+  state.trackType = 'checker';
+  document.getElementById('trackTypeChecker').dataset.active='true';
+  document.getElementById('trackTypeData').dataset.active='false';
+  document.getElementById('trackHint').textContent = 'Use YM... or CHKW... reference.';
+  clearResult(trackResult);
+});
+
+trackRefInput.addEventListener('input', e => e.target.value = e.target.value.toUpperCase());
+
+trackBtn.addEventListener('click', async () => {
+  const ref = trackRefInput.value.trim().toUpperCase();
+  clearResult(trackResult);
+  if (!ref) return setResult(trackResult,'err','<h3>Enter a reference</h3>');
+
+  const orig = trackBtn.textContent;
+  trackBtn.disabled = true;
+  trackBtn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const r = await api('/api/orders/lookup', { method:'POST', body:{ reference:ref, type:state.trackType } });
+    const { cls, title, body } = describeOrder(r.data);
+    setResult(trackResult, cls, `<h3>${title}</h3>${body}`);
+  } catch(e) {
+    setResult(trackResult,'err',`<h3>Not found</h3><p>${e.data?.message||e.message}</p>`);
+  } finally {
+    trackBtn.disabled = false;
+    trackBtn.textContent = orig;
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+loadPackages();
+loadCheckerProducts();
+checkOrderStatus();
+</script>
+
+</body>
+</html>
