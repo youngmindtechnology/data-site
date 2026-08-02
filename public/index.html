@@ -4,6 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Young Mind Data Plug</title>
+
+<!-- ============================================================
+     SEO / SOCIAL PREVIEW (Open Graph + Twitter Card)
+     Replace the placeholder URLs below with your real domain
+     and a real image (1200x630px works best for WhatsApp/FB).
+     ============================================================ -->
+<meta name="description" content="Buy MTN, Telecel & AirtelTigo data bundles instantly in Ghana. Plus WAEC & BECE result checker PINs. Fast delivery, secure Paystack payment.">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Young Mind Data Plug">
+<meta property="og:title" content="Young Mind Data Plug — MTN, Telecel & AirtelTigo Data Bundles">
+<meta property="og:description" content="Buy affordable MTN, Telecel & AirtelTigo data bundles instantly, plus WAEC & BECE checker PINs. Fast delivery, secure payment.">
+<meta property="og:url" content="https://yourdomain.com/">
+<meta property="og:image" content="https://yourdomain.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Young Mind Data Plug — MTN, Telecel & AirtelTigo Data Bundles">
+<meta name="twitter:description" content="Buy affordable MTN, Telecel & AirtelTigo data bundles instantly, plus WAEC & BECE checker PINs. Fast delivery, secure payment.">
+<meta name="twitter:image" content="https://yourdomain.com/og-image.jpg">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -189,6 +211,8 @@
   .field input::placeholder{ color:#6B7280; opacity:0.6; }
   .field input:focus{ outline:none; border-color:var(--brand-yellow); }
   .field .hint{ font-size:11px; color:var(--text-soft); margin-top:4px; }
+  .field .net-warning{ font-size:12px; color:var(--warn); margin-top:6px; display:none; align-items:center; gap:6px; }
+  .field .net-warning.show{ display:flex; }
 
   /* ============================================================
      NETWORK & PACKAGE GRIDS
@@ -506,6 +530,7 @@
       <div class="field">
         <label>Beneficiary number (gets the data)</label>
         <input type="tel" id="modalRecipientPhone" placeholder="0551234567" maxlength="10">
+        <div class="net-warning" id="modalPhoneNetWarning">⚠️ <span id="modalPhoneNetWarningText"></span></div>
       </div>
 
       <div class="field">
@@ -520,6 +545,7 @@
         <div class="field">
           <label>Mobile Money number</label>
           <input type="tel" id="modalMomoPhone" placeholder="0551234567" maxlength="10">
+          <div class="net-warning" id="modalMomoNetWarning">⚠️ <span id="modalMomoNetWarningText"></span></div>
         </div>
         <div class="field">
           <label>Mobile Money network</label>
@@ -628,6 +654,50 @@ let modalState = {
 // ============================================================
 function money(n){ return Number(n).toFixed(2); }
 function netLabel(n){ return { YELLO:'MTN', TELECEL:'Telecel', AT_PREMIUM:'AirtelTigo' }[n]||n; }
+
+// ------------------------------------------------------------
+// Ghana network prefix detection
+// Maps the first 3 digits of a local (0XXXXXXXXX) number to a
+// network code, so we can warn/stop people from buying a bundle
+// on the wrong network for their number.
+// ------------------------------------------------------------
+const NETWORK_PREFIX_MAP = {
+  // MTN
+  '024':'YELLO','025':'YELLO','053':'YELLO','054':'YELLO','055':'YELLO','059':'YELLO',
+  // Telecel (formerly Vodafone)
+  '020':'TELECEL','050':'TELECEL',
+  // AirtelTigo
+  '026':'AT_PREMIUM','027':'AT_PREMIUM','028':'AT_PREMIUM','056':'AT_PREMIUM','057':'AT_PREMIUM',
+};
+
+function detectNetworkFromPhone(phone){
+  const digits = (phone||'').replace(/\D/g,'');
+  if (digits.length < 3) return null;
+  const prefix = digits.slice(0,3);
+  return NETWORK_PREFIX_MAP[prefix] || null;
+}
+
+// Wires up a phone <input> + warning element pair: shows a live
+// warning when the typed number's detected network doesn't match
+// `getExpectedNetwork()`, and returns a `hasMismatch()` check that
+// callers can use to block submission.
+function wireNetworkMismatchWarning(inputEl, warningEl, warningTextEl, getExpectedNetwork){
+  let mismatch = false;
+  function update(){
+    const detected = detectNetworkFromPhone(inputEl.value);
+    const expected = getExpectedNetwork();
+    if (detected && expected && detected !== expected) {
+      mismatch = true;
+      warningTextEl.textContent = `This looks like a ${netLabel(detected)} number, but ${netLabel(expected)} is selected. Double-check the number or switch the network.`;
+      warningEl.classList.add('show');
+    } else {
+      mismatch = false;
+      warningEl.classList.remove('show');
+    }
+  }
+  inputEl.addEventListener('input', update);
+  return { update, hasMismatch: () => mismatch };
+}
 
 function setResult(el, cls, html){
   el.className = 'result show';
@@ -740,6 +810,25 @@ const modalStepOtp = document.getElementById('modalStepOtp');
 const modalStepStatus = document.getElementById('modalStepStatus');
 const momoFields = document.getElementById('momoFields');
 
+// Live network-mismatch warnings for the recipient number (checked
+// against the bundle's network) and the MoMo number (checked
+// against whichever network button is selected for MoMo).
+const recipientNetWarning = wireNetworkMismatchWarning(
+  document.getElementById('modalRecipientPhone'),
+  document.getElementById('modalPhoneNetWarning'),
+  document.getElementById('modalPhoneNetWarningText'),
+  () => modalState.network
+);
+const momoNetWarning = wireNetworkMismatchWarning(
+  document.getElementById('modalMomoPhone'),
+  document.getElementById('modalMomoNetWarning'),
+  document.getElementById('modalMomoNetWarningText'),
+  () => {
+    const activeNetBtn = document.querySelector('#momoNetGrid .net-btn[data-active="true"]');
+    return activeNetBtn ? activeNetBtn.dataset.net : modalState.network;
+  }
+);
+
 function showModalStep(id){
   [modalStepForm, modalStepPayOffline, modalStepOtp, modalStepStatus].forEach(s => s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
@@ -767,6 +856,8 @@ function openPurchaseModal(pkg){
   clearResult(document.getElementById('modalFormResult'));
   clearResult(document.getElementById('modalOfflineResult'));
   clearResult(document.getElementById('modalOtpResult'));
+  recipientNetWarning.update();
+  momoNetWarning.update();
 
   showModalStep('modalStepForm');
   purchaseModal.classList.remove('hidden');
@@ -792,11 +883,13 @@ document.getElementById('paySameNo').addEventListener('click', () => {
   document.getElementById('paySameYes').dataset.active = 'false';
   document.getElementById('paySameNo').dataset.active = 'true';
   momoFields.classList.remove('hidden');
+  momoNetWarning.update();
 });
 document.querySelectorAll('#momoNetGrid .net-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#momoNetGrid .net-btn').forEach(b => b.dataset.active='false');
     btn.dataset.active='true';
+    momoNetWarning.update();
   });
 });
 
@@ -808,6 +901,14 @@ modalPayBtn.addEventListener('click', async () => {
   const recipientPhone = document.getElementById('modalRecipientPhone').value.trim();
   if (!/^0\d{9}$/.test(recipientPhone)) {
     return setResult(formResult, 'err', '<h3>Invalid number</h3><p>Enter the beneficiary number as 10 digits starting with 0.</p>');
+  }
+
+  // Block the purchase if the beneficiary number's detected network
+  // doesn't match the bundle's network (e.g. buying an MTN bundle
+  // for a Telecel number).
+  const recipientNetwork = detectNetworkFromPhone(recipientPhone);
+  if (recipientNetwork && recipientNetwork !== modalState.network) {
+    return setResult(formResult, 'err', `<h3>Network mismatch</h3><p>${recipientPhone} looks like a <b>${netLabel(recipientNetwork)}</b> number, but this bundle is for <b>${netLabel(modalState.network)}</b>. Close this and pick a ${netLabel(recipientNetwork)} bundle instead, or double-check the number.</p>`);
   }
 
   const paySame = document.getElementById('paySameYes').dataset.active === 'true';
@@ -822,6 +923,14 @@ modalPayBtn.addEventListener('click', async () => {
     }
     const activeNetBtn = document.querySelector('#momoNetGrid .net-btn[data-active="true"]');
     momoNetwork = activeNetBtn ? activeNetBtn.dataset.net : modalState.network;
+
+    // Block if the MoMo number's detected network doesn't match the
+    // MoMo network the customer selected — this is what actually
+    // gets charged, so a mismatch here would fail at the network.
+    const momoDetected = detectNetworkFromPhone(momoPhone);
+    if (momoDetected && momoDetected !== momoNetwork) {
+      return setResult(formResult, 'err', `<h3>Network mismatch</h3><p>${momoPhone} looks like a <b>${netLabel(momoDetected)}</b> number, but you selected <b>${netLabel(momoNetwork)}</b> for Mobile Money. Please correct the network or the number.</p>`);
+    }
   }
 
   modalState.recipientPhone = recipientPhone;
