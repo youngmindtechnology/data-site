@@ -1,72 +1,368 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Young Mind Data Plug — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0F0B1E; --panel:#181228; --panel-2:#1F1834; --line:#31294A;
-    --text:#F3F1FB; --text-soft:#A79FC7; --accent:#C6FF3D;
-    --good:#3DDC84; --bad:#FF5C72; --warn:#FFB84D;
+  /* ============================================================
+     THEME VARIABLES
+     ============================================================ */
+  :root {
+    --brand-blue: #2D6CDF;
+    --brand-yellow: #FFCB05;
+    --brand-white: #FFFFFF;
+    
+    --bg: #F5F7FA;
+    --panel: #FFFFFF;
+    --panel-2: #F0F2F5;
+    --line: #E5E7EB;
+    --text: #1A1A2E;
+    --text-soft: #6B7280;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --radius: 16px;
+    
+    --good: #10B981;
+    --bad: #EF4444;
+    --warn: #F59E0B;
+    --info: #3B82F6;
   }
-  *{box-sizing:border-box;}
-  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
-  h1,h2{ font-family:'Sora',sans-serif; }
-  .mono{ font-family:'IBM Plex Mono',monospace; }
-  main{ max-width:1000px; margin:0 auto; padding:32px 24px 80px; }
-  .gate{ max-width:360px; margin:80px auto; text-align:center; }
+
+  [data-theme="dark"] {
+    --bg: #0F0B1E;
+    --panel: #181228;
+    --panel-2: #1F1834;
+    --line: #31294A;
+    --text: #F3F1FB;
+    --text-soft: #A79FC7;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    --good: #3DDC84;
+    --bad: #FF5C72;
+    --warn: #FFB84D;
+    --info: #6FA0FF;
+  }
+
+  /* ============================================================
+     BASE
+     ============================================================ */
+  *{ box-sizing:border-box; margin:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ============================================================
+     TOP BAR
+     ============================================================ */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background: var(--panel);
+    border-bottom:1px solid var(--line);
+    padding:12px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Sora',sans-serif;
+    font-weight:800; font-size:18px;
+    color: var(--text);
+    text-decoration:none;
+  }
+  .logo-icon{
+    width:32px; height:32px;
+    border-radius:8px;
+    background: var(--brand-yellow);
+    display:flex; align-items:center; justify-content:center;
+    color:#1A1A2E; font-weight:800; font-size:16px;
+  }
+  .logo span{ color: var(--brand-yellow); }
+  .logo small{
+    display:block; font-size:10px; font-weight:500;
+    color:var(--text-soft); font-family:'Inter',sans-serif;
+  }
+  .topbar-actions{ display:flex; align-items:center; gap:12px; }
+  .theme-toggle{
+    width:36px; height:36px; border-radius:50%;
+    border:1px solid var(--line); background:var(--panel-2);
+    color:var(--text-soft); cursor:pointer; font-size:18px;
+    transition:all 0.3s;
+  }
+  .theme-toggle:hover{ border-color:var(--brand-yellow); color:var(--text); }
+  .status-pill{
+    font-size:11px; color:var(--text-soft);
+    border:1px solid var(--line); border-radius:20px;
+    padding:5px 14px; display:flex; align-items:center; gap:6px;
+  }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); animation:pulse 1.8s infinite; }
+  @keyframes pulse{ 0%{ opacity:1; } 50%{ opacity:0.3; } 100%{ opacity:1; } }
+
+  /* ============================================================
+     LOGIN GATE
+     ============================================================ */
+  .gate{
+    max-width:400px; margin:80px auto; 
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:40px;
+    box-shadow:var(--shadow);
+    text-align:center;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .gate .icon{ font-size:48px; margin-bottom:12px; }
+  .gate h1{ font-family:'Sora',sans-serif; font-size:24px; margin:0 0 6px; color:var(--text); }
+  .gate .sub{ color:var(--text-soft); font-size:14px; margin:0 0 24px; }
   .gate input{
-    width:100%; padding:12px 14px; margin:14px 0;
+    width:100%; padding:12px 16px; margin:0 0 14px;
     border:1px solid var(--line); border-radius:8px;
-    background:var(--panel-2); color:var(--text); font-family:'IBM Plex Mono',monospace;
+    font-size:15px; font-family:'Inter',sans-serif;
+    background:var(--panel-2); color:var(--text);
+    transition: border-color 0.3s, background 0.3s;
   }
-  .btn{
-    appearance:none; border:none; border-radius:8px; padding:12px 18px;
-    background:var(--accent); color:#0F1400; font-family:'Sora',sans-serif; font-weight:700;
-    cursor:pointer; font-size:13.5px;
+  .gate input:focus{ outline:none; border-color:var(--brand-yellow); }
+  .gate .btn{
+    width:100%; padding:12px;
+    border:none; border-radius:8px;
+    background:var(--brand-yellow); color:#1A1A2E;
+    font-family:'Sora',sans-serif; font-weight:700; font-size:15px;
+    cursor:pointer; transition:all 0.3s;
   }
-  .btn-sm{ padding:7px 12px; font-size:12px; }
-  .stats{ display:flex; gap:14px; margin-bottom:24px; flex-wrap:wrap; }
-  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 20px; min-width:140px; }
-  .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); }
-  .stat .value{ font-family:'Sora',sans-serif; font-weight:700; font-size:22px; margin-top:4px; }
-  table{ width:100%; border-collapse:collapse; background:var(--panel); border-radius:10px; overflow:hidden; }
-  th, td{ text-align:left; padding:10px 12px; font-size:12.5px; border-bottom:1px solid var(--line); }
-  th{ color:var(--text-soft); text-transform:uppercase; font-size:10.5px; letter-spacing:0.05em; }
-  td.mono{ font-size:12px; }
-  .badge{ padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; font-family:'IBM Plex Mono',monospace; }
-  .badge.fulfilled{ background:var(--good); color:#082A17; }
-  .badge.fulfillment_failed{ background:var(--bad); color:#3A0008; }
+  .gate .btn:hover{ transform:translateY(-2px); box-shadow:0 4px 16px rgba(255,203,5,0.3); }
+  .gate-error{ color:var(--bad); font-size:13px; margin-top:12px; }
+
+  /* ============================================================
+     MAIN
+     ============================================================ */
+  .container{ max-width:1200px; margin:0 auto; padding:24px 24px 60px; }
+  .hidden{ display:none !important; }
+
+  /* ============================================================
+     HEADER
+     ============================================================ */
+  .page-header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:24px; flex-wrap:wrap; gap:12px;
+  }
+  .page-header h1{
+    font-family:'Sora',sans-serif; font-size:28px; color:var(--text); margin:0;
+  }
+  .page-header .sub{
+    color:var(--text-soft); font-size:14px; margin:4px 0 0;
+  }
+  .header-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  /* ============================================================
+     STATS
+     ============================================================ */
+  .stats-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
+    gap:16px; margin-bottom:24px;
+  }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:18px 20px;
+    box-shadow:var(--shadow);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .stat-card .label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-soft); font-weight:600;
+  }
+  .stat-card .value{
+    font-family:'Sora',sans-serif; font-weight:700; font-size:28px;
+    color:var(--text); margin-top:4px;
+  }
+  .stat-card .value.good{ color:var(--good); }
+  .stat-card .value.bad{ color:var(--bad); }
+  .stat-card .value.warn{ color:var(--warn); }
+  .stat-card .value.info{ color:var(--info); }
+
+  /* ============================================================
+     TABLE
+     ============================================================ */
+  .table-wrapper{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); overflow:hidden;
+    box-shadow:var(--shadow);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .table-scroll{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; }
+  thead{
+    background:var(--panel-2);
+    border-bottom:1px solid var(--line);
+  }
+  th{
+    text-align:left; padding:14px 16px;
+    font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-soft); font-weight:600;
+  }
+  td{
+    padding:12px 16px; font-size:13px;
+    border-bottom:1px solid var(--line);
+    color:var(--text);
+  }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover{ background:var(--panel-2); }
+
+  .mono{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
+
+  /* ============================================================
+     BADGES
+     ============================================================ */
+  .badge{
+    display:inline-block; padding:3px 12px; border-radius:20px;
+    font-size:11px; font-weight:600;
+    font-family:'Inter',sans-serif;
+  }
+  .badge.fulfilled{ background:var(--good); color:#FFFFFF; }
+  .badge.fulfillment_failed{ background:var(--bad); color:#FFFFFF; }
   .badge.payment_failed{ background:var(--line); color:var(--text-soft); }
-  .badge.paid, .badge.pending{ background:var(--warn); color:#2E1D00; }
-  #app.hidden{ display:none; }
+  .badge.paid, .badge.pending{ background:var(--warn); color:#FFFFFF; }
+  .badge.processing{ background:var(--info); color:#FFFFFF; }
+
+  /* ============================================================
+     BUTTONS
+     ============================================================ */
+  .btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 16px; border:none; border-radius:8px;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:12px;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .btn-sm{ padding:5px 12px; font-size:11px; }
+  .btn-retry{
+    background:var(--warn); color:#1A1A2E;
+  }
+  .btn-retry:hover{ transform:translateY(-1px); box-shadow:0 2px 8px rgba(245,158,11,0.3); }
+  .btn-retry:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .btn-refresh{
+    background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line);
+  }
+  .btn-refresh:hover{ border-color:var(--brand-yellow); }
+
+  /* ============================================================
+     EMPTY STATE
+     ============================================================ */
+  .empty-state{
+    text-align:center; padding:48px 20px;
+    color:var(--text-soft);
+  }
+  .empty-state .icon{ font-size:48px; margin-bottom:12px; }
+  .empty-state h3{ font-family:'Sora',sans-serif; color:var(--text); margin:0 0 6px; }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width:640px){
+    .gate{ margin:40px 16px; padding:28px 20px; }
+    .page-header{ flex-direction:column; align-items:flex-start; }
+    .stats-grid{ grid-template-columns:repeat(2, 1fr); }
+    .container{ padding:16px 16px 40px; }
+    .topbar{ padding:10px 16px; }
+    .status-pill{ display:none; }
+  }
 </style>
 </head>
 <body>
 
-<div class="gate" id="gate">
-  <h1>Admin</h1>
-  <p style="color:var(--text-soft); font-size:13px;">Enter your admin key to view orders.</p>
-  <input type="password" id="keyInput" placeholder="Admin key">
-  <button class="btn" id="enterBtn">Enter</button>
-  <p id="gateError" style="color:var(--bad); font-size:12.5px;"></p>
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<div class="topbar">
+  <a href="/" class="logo">
+    <div class="logo-icon">Y</div>
+    <div>
+      Young Mind
+      <span>Data Plug</span>
+      <small>Admin Panel</small>
+    </div>
+  </a>
+  <div class="topbar-actions">
+    <div class="status-pill"><span class="dot"></span>Live</div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+  </div>
 </div>
 
-<main id="app" class="hidden">
-  <h1>Orders</h1>
-  <div class="stats" id="stats"></div>
-  <table>
-    <thead>
-      <tr><th>Reference</th><th>Type</th><th>Status</th><th>Amount</th><th>Phone</th><th>Created</th><th></th></tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
-</main>
+<!-- ============================================================
+     LOGIN GATE
+     ============================================================ -->
+<div class="gate" id="gate">
+  <div class="icon">🔐</div>
+  <h1>Admin Access</h1>
+  <p class="sub">Enter your admin key to view and manage orders.</p>
+  <input type="password" id="keyInput" placeholder="Enter admin key" autofocus>
+  <button class="btn" id="enterBtn">Unlock Dashboard</button>
+  <p class="gate-error" id="gateError"></p>
+</div>
+
+<!-- ============================================================
+     MAIN DASHBOARD
+     ============================================================ -->
+<div class="container hidden" id="app">
+
+  <div class="page-header">
+    <div>
+      <h1>📋 Order Dashboard</h1>
+      <p class="sub">Real-time overview of all orders placed through your store.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-refresh" id="refreshBtn">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="stats"></div>
+
+  <!-- Orders Table -->
+  <div class="table-wrapper">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th>Phone</th>
+            <th>Created</th>
+            <th style="text-align:center;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
 
 <script>
+// ============================================================
+// THEME TOGGLE
+// ============================================================
+const themeToggle = document.getElementById('themeToggle');
+const html = document.documentElement;
+const saved = localStorage.getItem('theme') || 'dark';
+html.setAttribute('data-theme', saved);
+themeToggle.textContent = saved === 'dark' ? '🌙' : '☀️';
+
+themeToggle.addEventListener('click', () => {
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  themeToggle.textContent = next === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('theme', next);
+});
+
+// ============================================================
+// ADMIN LOGIC
+// ============================================================
 let ADMIN_KEY = '';
 const params = new URLSearchParams(window.location.search);
 if (params.get('key')) ADMIN_KEY = params.get('key');
@@ -84,45 +380,111 @@ async function adminApi(path, opts = {}){
 
 function money(n){ const num = Number(n); return isNaN(num) ? n : num.toFixed(2); }
 
+function formatDate(dateStr){
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function getStatusLabel(status){
+  const map = {
+    'fulfilled': '✅ Fulfilled',
+    'fulfillment_failed': '⚠️ Failed',
+    'payment_failed': '❌ Payment Failed',
+    'paid': '💰 Paid',
+    'pending': '⏳ Pending',
+    'processing': '🔄 Processing'
+  };
+  return map[status] || status;
+}
+
 async function loadOrders(){
   const r = await adminApi('/admin/api/orders');
-  const list = r.data;
+  const list = r.data || [];
 
-  const counts = { fulfilled: 0, fulfillment_failed: 0, pending: 0, revenue: 0 };
+  const counts = { 
+    fulfilled: 0, 
+    fulfillment_failed: 0, 
+    pending: 0, 
+    revenue: 0,
+    total: list.length 
+  };
+  
   list.forEach(o => {
-    if (o.status === 'fulfilled') { counts.fulfilled++; counts.revenue += Number(o.amount || 0); }
+    if (o.status === 'fulfilled') { 
+      counts.fulfilled++; 
+      counts.revenue += Number(o.amount || 0); 
+    }
     if (o.status === 'fulfillment_failed') counts.fulfillment_failed++;
     if (o.status === 'pending' || o.status === 'paid') counts.pending++;
   });
 
   document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="label">Fulfilled</div><div class="value">${counts.fulfilled}</div></div>
-    <div class="stat"><div class="label">Needs attention</div><div class="value" style="color:${counts.fulfillment_failed ? 'var(--bad)' : 'var(--text)'}">${counts.fulfillment_failed}</div></div>
-    <div class="stat"><div class="label">In progress</div><div class="value">${counts.pending}</div></div>
-    <div class="stat"><div class="label">Revenue (fulfilled)</div><div class="value">GH₵ ${money(counts.revenue)}</div></div>
+    <div class="stat-card">
+      <div class="label">Total Orders</div>
+      <div class="value info">${counts.total}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">✅ Fulfilled</div>
+      <div class="value good">${counts.fulfilled}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">⚠️ Needs Attention</div>
+      <div class="value ${counts.fulfillment_failed ? 'bad' : ''}">${counts.fulfillment_failed}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">⏳ In Progress</div>
+      <div class="value warn">${counts.pending}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">💰 Revenue</div>
+      <div class="value good">GH₵ ${money(counts.revenue)}</div>
+    </div>
   `;
+
+  if (list.length === 0) {
+    document.getElementById('rows').innerHTML = `
+      <tr>
+        <td colspan="7">
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <h3>No orders yet</h3>
+            <p>Orders will appear here once customers start purchasing.</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
 
   document.getElementById('rows').innerHTML = list.map(o => `
     <tr>
       <td class="mono">${o.reference}</td>
       <td>${o.type === 'data' ? (o.network || '') + ' ' + (o.capacity || '') + 'GB' : o.checkerType}</td>
-      <td><span class="badge ${o.status}">${o.status}</span></td>
+      <td><span class="badge ${o.status}">${getStatusLabel(o.status)}</span></td>
       <td class="mono">GH₵ ${money(o.amount)}</td>
-      <td class="mono">${o.phoneNumber || ''}</td>
-      <td class="mono">${new Date(o.createdAt).toLocaleString()}</td>
-      <td>${o.status === 'fulfillment_failed' ? `<button class="btn btn-sm retry" data-ref="${o.reference}">Retry</button>` : ''}</td>
+      <td class="mono">${o.phoneNumber || '—'}</td>
+      <td class="mono">${formatDate(o.createdAt)}</td>
+      <td style="text-align:center;">
+        ${o.status === 'fulfillment_failed' ? 
+          `<button class="btn btn-retry btn-sm retry" data-ref="${o.reference}">⟳ Retry</button>` : 
+          '—'
+        }
+      </td>
     </tr>
   `).join('');
 
   document.querySelectorAll('.retry').forEach(btn => {
     btn.addEventListener('click', async () => {
-      btn.disabled = true; btn.textContent = 'Retrying…';
+      btn.disabled = true; 
+      btn.textContent = '⟳ Retrying…';
       try {
         await adminApi(`/admin/api/orders/${btn.dataset.ref}/retry`, { method: 'POST' });
         await loadOrders();
       } catch (e) {
         alert('Retry failed: ' + e.message);
-        btn.disabled = false; btn.textContent = 'Retry';
+        btn.disabled = false; 
+        btn.textContent = '⟳ Retry';
       }
     });
   });
@@ -134,15 +496,20 @@ async function enter(){
     await loadOrders();
     document.getElementById('gate').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
-    setInterval(loadOrders, 15000);
+    // Auto-refresh every 15 seconds
+    if (window.refreshInterval) clearInterval(window.refreshInterval);
+    window.refreshInterval = setInterval(loadOrders, 15000);
   } catch (e) {
-    document.getElementById('gateError').textContent = 'Wrong key or server error.';
+    document.getElementById('gateError').textContent = '❌ Wrong key or server error.';
   }
 }
 
 document.getElementById('enterBtn').addEventListener('click', enter);
 document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') enter(); });
+document.getElementById('refreshBtn').addEventListener('click', loadOrders);
+
 if (ADMIN_KEY) enter();
 </script>
+
 </body>
 </html>
