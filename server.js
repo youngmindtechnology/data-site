@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const path = require('path');
 const axios = require('axios'); 
 
-const datamart = require('./lib/datamart');
+const datamart = require('./lib/Datamart');
 const paystack = require('./lib/paystack');
 const orders = require('./lib/orderStore');
 
