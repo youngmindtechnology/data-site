@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const MARKUP_PERCENT = Number(process.env.MARKUP_PERCENT || 10);
 const FLAT_MARKUP_GHS = Number(process.env.FLAT_MARKUP_GHS || 2);
-const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+const BASE_URL = process.env.BASE_URL || 'https://youngmind.shop';
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const ADMIN_PHONE = process.env.ADMIN_PHONE || '';
 
@@ -217,13 +217,14 @@ app.post('/api/orders/init', async (req, res) => {
 
     orders.save(order);
 
-    const paystackRes = await paystack.initializeTransaction({
-      email,
-      amountPesewas: Math.round(order.amount * 100),
-      reference: order.reference,
-      callback_url: `${BASE_URL}/api/payment/callback`,
-      metadata: { type: order.type, phoneNumber },
-    });
+   const paystackRes = await paystack.initializeTransaction({
+  email,
+  amountPesewas: Math.round(order.amount * 100),
+  reference: order.reference,
+  callback_url: `${BASE_URL}/api/payment/callback`,  // ← This builds the URL
+  metadata: { type: order.type, phoneNumber },
+   });
+
 
     if (!paystackRes.status) {
       return res.status(502).json({ status: 'error', message: 'Could not start payment. Please try again.' });
