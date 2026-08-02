@@ -353,6 +353,52 @@
   footer{ text-align:center; color:var(--text-soft); font-size:12px; padding:20px 0; }
 
   /* ============================================================
+     PROMO BANNER (join WhatsApp group)
+     ============================================================ */
+  .promo-banner{
+    background: linear-gradient(90deg, var(--brand-yellow), #FFDE59);
+    color:#1A1A2E;
+    display:flex; align-items:center; justify-content:center; gap:12px;
+    padding:10px 40px 10px 16px;
+    font-size:13px; font-weight:600;
+    position:relative;
+    text-align:center;
+    flex-wrap:wrap;
+  }
+  .promo-banner.hidden{ display:none !important; }
+  .promo-banner a{
+    color:#1A1A2E; text-decoration:underline; font-weight:800;
+    white-space:nowrap;
+  }
+  .promo-banner-close{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    background:rgba(26,26,46,0.12); border:none; border-radius:50%;
+    width:24px; height:24px; font-size:15px; line-height:1;
+    color:#1A1A2E; cursor:pointer;
+  }
+  .promo-banner-close:hover{ background:rgba(26,26,46,0.22); }
+
+  /* ============================================================
+     FLOATING WHATSAPP BUTTON (draggable)
+     ============================================================ */
+  .wa-float-btn{
+    position:fixed;
+    width:56px; height:56px;
+    border-radius:50%;
+    background:#25D366;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 14px rgba(0,0,0,0.3);
+    cursor:grab;
+    z-index:150;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .wa-float-btn:active{ cursor:grabbing; }
+  .wa-float-btn svg{ width:28px; height:28px; pointer-events:none; }
+  .wa-float-btn.dragging{ box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+
+  /* ============================================================
      RESPONSIVE
      ============================================================ */
   @media (max-width:600px){
@@ -367,6 +413,16 @@
 </style>
 </head>
 <body>
+
+<!-- ============================================================
+     PROMO BANNER — shown on every page load, dismissible for the session
+     Replace WHATSAPP_GROUP_LINK below with your real group invite link.
+     ============================================================ -->
+<div class="promo-banner" id="promoBanner">
+  <span>📢 Join our WhatsApp group for bundle deals &amp; updates —</span>
+  <a href="https://chat.whatsapp.com/LemPKfR3rclI2Y6SFggjIm?s=cl&p=i&ilr=0&amv=1" target="_blank" rel="noopener">Join now</a>
+  <button class="promo-banner-close" id="promoBannerClose" aria-label="Dismiss">&times;</button>
+</div>
 
 <!-- ============================================================
      TOP BAR
@@ -492,7 +548,7 @@
 
       <div class="field">
         <label>Reference</label>
-        <input type="text" id="trackReference" placeholder="MN... or Track ID Ref" style="text-transform:uppercase;">
+        <input type="text" id="trackReference" placeholder="YM... or DataMart Ref" style="text-transform:uppercase;">
         <div class="hint" id="trackHint">Use YM... or GN-... reference.</div>
       </div>
 
@@ -593,6 +649,18 @@
 </div>
 
 <!-- ============================================================
+     FLOATING WHATSAPP BUTTON (draggable, click opens chat)
+     Replace WHATSAPP_NUMBER below with your number in international
+     format, no + and no leading 0, e.g. 233551234567
+     ============================================================ -->
+<div class="wa-float-btn" id="waFloatBtn" data-wa-number="233533980571" aria-label="Chat with admin on WhatsApp" role="button">
+  <svg viewBox="0 0 32 32" fill="#fff" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 3C9.373 3 4 8.373 4 15c0 2.386.703 4.61 1.912 6.47L4 29l7.72-1.877A11.94 11.94 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3zm0 21.818a9.78 9.78 0 0 1-4.98-1.363l-.357-.213-3.61.878.902-3.594-.234-.37A9.79 9.79 0 0 1 6.182 15c0-5.42 4.398-9.818 9.818-9.818S25.818 9.58 25.818 15 21.42 24.818 16 24.818z"/>
+    <path d="M21.16 17.657c-.283-.142-1.677-.828-1.937-.923-.26-.095-.45-.142-.638.142-.19.283-.733.923-.9 1.113-.166.19-.332.213-.615.07-.283-.142-1.195-.44-2.276-1.404-.841-.75-1.409-1.677-1.574-1.96-.166-.284-.018-.437.124-.578.128-.127.283-.331.425-.497.142-.166.19-.284.284-.473.095-.19.047-.355-.024-.497-.07-.142-.638-1.537-.874-2.105-.23-.553-.464-.478-.638-.487a12 12 0 0 0-.544-.01c-.19 0-.497.07-.757.355-.26.284-.994.972-.994 2.37 0 1.396 1.018 2.745 1.16 2.934.142.19 2.003 3.06 4.854 4.29.678.293 1.207.468 1.62.6.68.216 1.3.185 1.79.112.546-.082 1.677-.686 1.913-1.348.236-.663.236-1.23.166-1.349-.07-.118-.26-.19-.544-.33z"/>
+  </svg>
+</div>
+
+<!-- ============================================================
      DATAMART TRACKER WIDGET
      ============================================================ -->
 <script src="https://api.datamartgh.shop/widgets/delivery-tracker.js"
@@ -606,6 +674,88 @@
      SCRIPT
      ============================================================ -->
 <script>
+// ============================================================
+// PROMO BANNER — dismiss for this page load only
+// (No localStorage suppression: per the requirement, it should
+// show again every time the page opens.)
+// ============================================================
+document.getElementById('promoBannerClose').addEventListener('click', () => {
+  document.getElementById('promoBanner').classList.add('hidden');
+});
+
+// ============================================================
+// FLOATING WHATSAPP BUTTON — draggable, opens chat on click
+// ============================================================
+(function setupWaFloatBtn(){
+  const btn = document.getElementById('waFloatBtn');
+
+  // Default position: bottom-right, above safe area.
+  function setDefaultPosition(){
+    const margin = 20;
+    const size = 56;
+    btn.style.left = (window.innerWidth - size - margin) + 'px';
+    btn.style.top = (window.innerHeight - size - margin) + 'px';
+  }
+  setDefaultPosition();
+  window.addEventListener('resize', () => {
+    // Keep it on-screen if the viewport shrinks (e.g. rotate).
+    const rect = btn.getBoundingClientRect();
+    const maxLeft = window.innerWidth - rect.width - 4;
+    const maxTop = window.innerHeight - rect.height - 4;
+    btn.style.left = Math.min(rect.left, Math.max(4, maxLeft)) + 'px';
+    btn.style.top = Math.min(rect.top, Math.max(4, maxTop)) + 'px';
+  });
+
+  let dragging = false;
+  let moved = false;
+  let startX = 0, startY = 0, origLeft = 0, origTop = 0;
+  const DRAG_THRESHOLD = 6; // px — below this, treat it as a click/tap
+
+  function onPointerDown(e){
+    dragging = true;
+    moved = false;
+    const rect = btn.getBoundingClientRect();
+    origLeft = rect.left;
+    origTop = rect.top;
+    startX = e.clientX;
+    startY = e.clientY;
+    btn.setPointerCapture(e.pointerId);
+    btn.classList.add('dragging');
+  }
+
+  function onPointerMove(e){
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) moved = true;
+    if (!moved) return;
+
+    const size = btn.offsetWidth;
+    let newLeft = origLeft + dx;
+    let newTop = origTop + dy;
+    newLeft = Math.max(4, Math.min(window.innerWidth - size - 4, newLeft));
+    newTop = Math.max(4, Math.min(window.innerHeight - size - 4, newTop));
+    btn.style.left = newLeft + 'px';
+    btn.style.top = newTop + 'px';
+  }
+
+  function onPointerUp(e){
+    if (!dragging) return;
+    dragging = false;
+    btn.classList.remove('dragging');
+    if (!moved) {
+      // Treated as a tap/click, not a drag — open WhatsApp chat.
+      const number = btn.dataset.waNumber;
+      window.open(`https://wa.me/${number}`, '_blank', 'noopener');
+    }
+  }
+
+  btn.addEventListener('pointerdown', onPointerDown);
+  btn.addEventListener('pointermove', onPointerMove);
+  btn.addEventListener('pointerup', onPointerUp);
+  btn.addEventListener('pointercancel', onPointerUp);
+})();
+
 // ============================================================
 // THEME TOGGLE
 // ============================================================
@@ -634,7 +784,7 @@ let state = {
   selectedPkg: null,
   checkerProducts: [],
   selectedChecker: null,
-  feePercent: 0,
+  feePercent: 3, // processing fee, added on top of the bundle price when a package is selected
   passFeeToCustomer: true,
   trackType: 'data'
 };
@@ -654,6 +804,16 @@ let modalState = {
 // ============================================================
 function money(n){ return Number(n).toFixed(2); }
 function netLabel(n){ return { YELLO:'MTN', TELECEL:'Telecel', AT_PREMIUM:'AirtelTigo' }[n]||n; }
+
+// Adds the processing fee (state.feePercent, e.g. 3 = 3%) on top of a
+// base price. If the backend already sends a `payable` amount that
+// includes its own fee, that's used as-is instead of double-charging.
+function priceWithFee(basePrice){
+  return Number(basePrice) * (1 + (state.feePercent || 0) / 100);
+}
+function feeAmount(basePrice){
+  return Number(basePrice) * ((state.feePercent || 0) / 100);
+}
 
 // ------------------------------------------------------------
 // Ghana network prefix detection
@@ -789,12 +949,13 @@ async function loadPackages(){
 
 function renderPackages(){
   const list = state.packages[state.network] || [];
-  pkgSub.textContent = list.length ? `${list.length} bundles` : 'No packages';
+  pkgSub.textContent = list.length ? `${list.length} bundles · incl. ${state.feePercent}% processing fee` : 'No packages';
   pkgGrid.innerHTML = '';
   list.forEach(pkg => {
+    const total = pkg.payable != null ? pkg.payable : priceWithFee(pkg.price);
     const b = document.createElement('button');
     b.className = 'pkg-btn';
-    b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(pkg.price)}</span>`;
+    b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(total)}</span>`;
     b.addEventListener('click', () => openPurchaseModal(pkg));
     pkgGrid.appendChild(b);
   });
@@ -845,8 +1006,28 @@ function openPurchaseModal(pkg){
     reference: null,
   };
 
-  document.getElementById('modalPkgSummary').innerHTML =
-    `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.payable||pkg.price)}`;
+  // If the backend already returns a `payable` amount (its own price
+  // with fee baked in), trust that and just show a total. Otherwise
+  // compute and show a price + processing fee breakdown client-side.
+  if (pkg.payable != null) {
+    document.getElementById('modalPkgSummary').innerHTML =
+      `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.payable)}`;
+  } else {
+    const fee = feeAmount(pkg.price);
+    const total = priceWithFee(pkg.price);
+    document.getElementById('modalPkgSummary').innerHTML = `
+      <b>${netLabel(state.network)} ${pkg.capacity}GB</b>
+      <div class="row" style="display:flex;justify-content:space-between;margin-top:8px;">
+        <span>Bundle price</span><span>GH₵ ${money(pkg.price)}</span>
+      </div>
+      <div class="row" style="display:flex;justify-content:space-between;">
+        <span>Processing fee (${state.feePercent}%)</span><span>GH₵ ${money(fee)}</span>
+      </div>
+      <div class="row" style="display:flex;justify-content:space-between;font-weight:700;margin-top:4px;padding-top:6px;border-top:1px solid var(--line);">
+        <span>Total to pay</span><span>GH₵ ${money(total)}</span>
+      </div>
+    `;
+  }
   document.getElementById('modalRecipientPhone').value = '';
   document.getElementById('modalMomoPhone').value = '';
   document.getElementById('paySameYes').dataset.active = 'true';
