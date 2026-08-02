@@ -206,6 +206,8 @@
   .net-btn[data-active="true"][data-net="YELLO"]{ border-color:#FFCB05; background:rgba(255,203,5,0.1); color:#FFCB05; }
   .net-btn[data-active="true"][data-net="TELECEL"]{ border-color:#E2001A; background:rgba(226,0,26,0.1); color:#FF6B7A; }
   .net-btn[data-active="true"][data-net="AT_PREMIUM"]{ border-color:#2D6CDF; background:rgba(45,108,223,0.12); color:#6FA0FF; }
+  /* Generic active state for non-network toggles (e.g. Yes/No radios) */
+  .net-btn[data-active="true"]:not([data-net]){ border-color:var(--brand-yellow); background:rgba(255,203,5,0.08); color:var(--brand-yellow); }
 
   .pkg-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; margin-top:4px; }
   .pkg-btn{
@@ -235,6 +237,11 @@
   }
   .btn-primary:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 4px 16px rgba(255,203,5,0.3); }
   .btn-primary:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn-secondary{
+    background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line);
+  }
+  .btn-secondary:hover:not(:disabled){ border-color:var(--brand-yellow); }
 
   .spinner{
     width:14px; height:14px; border-radius:50%;
@@ -284,6 +291,37 @@
      ============================================================ */
   #checkerGrid.net-grid-2{ grid-template-columns:repeat(2,1fr); }
   #checkerGrid.net-grid-3{ grid-template-columns:repeat(3,1fr); }
+
+  /* ============================================================
+     PURCHASE MODAL
+     ============================================================ */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6);
+    display:flex; align-items:center; justify-content:center;
+    z-index:200; padding:20px;
+  }
+  .modal-overlay.hidden{ display:none !important; }
+  .modal-box{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:24px;
+    max-width:420px; width:100%; max-height:90vh; overflow-y:auto;
+    position:relative; box-shadow:var(--shadow);
+  }
+  .modal-close{
+    position:absolute; top:12px; right:14px;
+    background:none; border:none; font-size:22px; line-height:1;
+    color:var(--text-soft); cursor:pointer; padding:4px;
+  }
+  .modal-close:hover{ color:var(--text); }
+  .modal-title{
+    font-family:'Sora',sans-serif; font-weight:700; font-size:16px;
+    margin-bottom:14px; padding-right:20px;
+  }
+  .modal-pkg-summary{
+    background:var(--panel-2); border-radius:10px; padding:10px 14px;
+    font-size:13px; color:var(--text-soft); margin-bottom:16px;
+  }
+  .modal-pkg-summary b{ color:var(--text); }
 
   /* ============================================================
      FOOTER
@@ -364,19 +402,7 @@
       <div class="panel-title">Pick a bundle</div>
       <div class="panel-sub" id="pkgSub">Loading packages…</div>
       <div class="pkg-grid" id="pkgGrid"></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">Send to</div>
-      <div class="field">
-        <label>Phone number</label>
-        <input type="tel" id="buyPhone" placeholder="0551234567" maxlength="10">
-        <div class="hint">The data will be sent to this number.</div>
-      </div>
-      <button class="btn btn-primary" id="buyBtn" disabled>
-        <span id="buyBtnLabel">Select a bundle</span>
-      </button>
-      <div class="result" id="buyResult"></div>
+      <div class="hint" style="margin-top:10px;">Tap a bundle to enter delivery &amp; payment details.</div>
     </div>
   </section>
 
@@ -466,6 +492,80 @@
 </div>
 
 <!-- ============================================================
+     PURCHASE MODAL
+     ============================================================ -->
+<div class="modal-overlay hidden" id="purchaseModal">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+
+    <!-- Step 1: delivery + payment details -->
+    <div id="modalStepForm">
+      <div class="modal-title">Complete your order</div>
+      <div class="modal-pkg-summary" id="modalPkgSummary"></div>
+
+      <div class="field">
+        <label>Beneficiary number (gets the data)</label>
+        <input type="tel" id="modalRecipientPhone" placeholder="0551234567" maxlength="10">
+      </div>
+
+      <div class="field">
+        <label>Are you paying with this same number?</label>
+        <div class="net-grid" style="grid-template-columns:1fr 1fr;">
+          <button type="button" class="net-btn" id="paySameYes" data-active="true">Yes</button>
+          <button type="button" class="net-btn" id="paySameNo" data-active="false">No</button>
+        </div>
+      </div>
+
+      <div id="momoFields" class="hidden">
+        <div class="field">
+          <label>Mobile Money number</label>
+          <input type="tel" id="modalMomoPhone" placeholder="0551234567" maxlength="10">
+        </div>
+        <div class="field">
+          <label>Mobile Money network</label>
+          <div class="net-grid" id="momoNetGrid">
+            <button type="button" class="net-btn" data-net="YELLO" data-active="true">MTN</button>
+            <button type="button" class="net-btn" data-net="TELECEL">Telecel</button>
+            <button type="button" class="net-btn" data-net="AT_PREMIUM">AirtelTigo</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="modalPayBtn">Pay now</button>
+      <div class="result" id="modalFormResult"></div>
+    </div>
+
+    <!-- Step 2a: pay_offline — customer approves a USSD/PIN prompt -->
+    <div id="modalStepPayOffline" class="hidden">
+      <div class="modal-title">Approve payment on your phone</div>
+      <p class="panel-sub" id="payOfflineText">A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.</p>
+      <button class="btn btn-primary" id="ivePaidBtn">I've completed payment</button>
+      <button class="btn btn-secondary" id="offlineBackBtn" style="margin-top:8px;">Back</button>
+      <div class="result" id="modalOfflineResult"></div>
+    </div>
+
+    <!-- Step 2b: send_otp — customer's network requires an OTP -->
+    <div id="modalStepOtp" class="hidden">
+      <div class="modal-title">Enter verification code</div>
+      <p class="panel-sub">Your network sent a verification code to confirm this payment.</p>
+      <div class="field">
+        <label>Verification code</label>
+        <input type="text" id="modalOtpInput" placeholder="123456" maxlength="8">
+      </div>
+      <button class="btn btn-primary" id="modalOtpBtn">Submit code</button>
+      <div class="result" id="modalOtpResult"></div>
+    </div>
+
+    <!-- Step 3: confirming / receipt -->
+    <div id="modalStepStatus" class="hidden">
+      <div class="modal-title">Confirming your order</div>
+      <div id="modalStatusBody"></div>
+      <button class="btn btn-secondary" id="modalDoneBtn" style="margin-top:14px;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      DATAMART TRACKER WIDGET
      ============================================================ -->
 <script src="https://api.datamartgh.shop/widgets/delivery-tracker.js"
@@ -512,6 +612,16 @@ let state = {
   trackType: 'data'
 };
 
+let modalState = {
+  pkg: null,
+  network: 'YELLO',
+  recipientPhone: '',
+  paySame: true,
+  momoPhone: '',
+  momoNetwork: 'YELLO',
+  reference: null,
+};
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -542,7 +652,7 @@ function describeOrder(d){
   const status = d.status || d.orderStatus || 'unknown';
   const done = ['fulfilled','completed','delivered'].includes(status);
   const failed = ['payment_failed','fulfillment_failed','failed'].includes(status);
-  const wait = ['pending','processing','waiting'].includes(status);
+  const wait = ['pending','processing','waiting','paid'].includes(status);
 
   let rows = `
     <div class="row"><span>Reference</span><span>${d.reference||d.orderReference||'N/A'}</span></div>
@@ -584,22 +694,16 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 // ============================================================
-// BUY DATA
+// BUY DATA — package grid opens the purchase modal
 // ============================================================
 const pkgGrid = document.getElementById('pkgGrid');
 const pkgSub = document.getElementById('pkgSub');
-const buyBtn = document.getElementById('buyBtn');
-const buyLabel = document.getElementById('buyBtnLabel');
-const buyResult = document.getElementById('buyResult');
 
 document.querySelectorAll('#tab-buy .net-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#tab-buy .net-btn').forEach(b => b.dataset.active='false');
     btn.dataset.active='true';
     state.network = btn.dataset.net;
-    state.selectedPkg = null;
-    buyBtn.disabled = true;
-    buyLabel.textContent = 'Select a bundle';
     renderPackages();
   });
 });
@@ -620,45 +724,211 @@ function renderPackages(){
     const b = document.createElement('button');
     b.className = 'pkg-btn';
     b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(pkg.price)}</span>`;
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.pkg-btn').forEach(x => x.dataset.active='false');
-      b.dataset.active='true';
-      state.selectedPkg = pkg;
-      buyBtn.disabled = false;
-      buyLabel.textContent = `Pay GH₵ ${money(pkg.payable||pkg.price)}`;
-    });
+    b.addEventListener('click', () => openPurchaseModal(pkg));
     pkgGrid.appendChild(b);
   });
 }
 
-buyBtn.addEventListener('click', async () => {
-  const phone = document.getElementById('buyPhone').value.trim();
-  clearResult(buyResult);
-  if (!/^0\d{9}$/.test(phone)) return setResult(buyResult,'err','<h3>Invalid phone</h3><p>Use 10 digits starting with 0.</p>');
-  if (!state.selectedPkg) return;
+// ============================================================
+// PURCHASE MODAL
+// ============================================================
+const purchaseModal = document.getElementById('purchaseModal');
+const modalStepForm = document.getElementById('modalStepForm');
+const modalStepPayOffline = document.getElementById('modalStepPayOffline');
+const modalStepOtp = document.getElementById('modalStepOtp');
+const modalStepStatus = document.getElementById('modalStepStatus');
+const momoFields = document.getElementById('momoFields');
 
-  const orig = buyLabel.textContent;
-  buyBtn.disabled = true;
-  buyLabel.innerHTML = '<span class="spinner"></span> Starting…';
+function showModalStep(id){
+  [modalStepForm, modalStepPayOffline, modalStepOtp, modalStepStatus].forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function openPurchaseModal(pkg){
+  modalState = {
+    pkg,
+    network: state.network,
+    recipientPhone: '',
+    paySame: true,
+    momoPhone: '',
+    momoNetwork: state.network,
+    reference: null,
+  };
+
+  document.getElementById('modalPkgSummary').innerHTML =
+    `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.payable||pkg.price)}`;
+  document.getElementById('modalRecipientPhone').value = '';
+  document.getElementById('modalMomoPhone').value = '';
+  document.getElementById('paySameYes').dataset.active = 'true';
+  document.getElementById('paySameNo').dataset.active = 'false';
+  momoFields.classList.add('hidden');
+  document.querySelectorAll('#momoNetGrid .net-btn').forEach(b => b.dataset.active = (b.dataset.net === state.network) ? 'true' : 'false');
+  clearResult(document.getElementById('modalFormResult'));
+  clearResult(document.getElementById('modalOfflineResult'));
+  clearResult(document.getElementById('modalOtpResult'));
+
+  showModalStep('modalStepForm');
+  purchaseModal.classList.remove('hidden');
+}
+
+function closePurchaseModal(){
+  purchaseModal.classList.add('hidden');
+}
+
+document.getElementById('modalClose').addEventListener('click', closePurchaseModal);
+document.getElementById('modalDoneBtn').addEventListener('click', () => {
+  closePurchaseModal();
+  loadPackages(); // refresh in case stock/prices changed
+});
+purchaseModal.addEventListener('click', (e) => { if (e.target === purchaseModal) closePurchaseModal(); });
+
+document.getElementById('paySameYes').addEventListener('click', () => {
+  document.getElementById('paySameYes').dataset.active = 'true';
+  document.getElementById('paySameNo').dataset.active = 'false';
+  momoFields.classList.add('hidden');
+});
+document.getElementById('paySameNo').addEventListener('click', () => {
+  document.getElementById('paySameYes').dataset.active = 'false';
+  document.getElementById('paySameNo').dataset.active = 'true';
+  momoFields.classList.remove('hidden');
+});
+document.querySelectorAll('#momoNetGrid .net-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#momoNetGrid .net-btn').forEach(b => b.dataset.active='false');
+    btn.dataset.active='true';
+  });
+});
+
+const modalPayBtn = document.getElementById('modalPayBtn');
+modalPayBtn.addEventListener('click', async () => {
+  const formResult = document.getElementById('modalFormResult');
+  clearResult(formResult);
+
+  const recipientPhone = document.getElementById('modalRecipientPhone').value.trim();
+  if (!/^0\d{9}$/.test(recipientPhone)) {
+    return setResult(formResult, 'err', '<h3>Invalid number</h3><p>Enter the beneficiary number as 10 digits starting with 0.</p>');
+  }
+
+  const paySame = document.getElementById('paySameYes').dataset.active === 'true';
+  let momoPhone, momoNetwork;
+  if (paySame) {
+    momoPhone = recipientPhone;
+    momoNetwork = modalState.network; // assume same network as the data purchase
+  } else {
+    momoPhone = document.getElementById('modalMomoPhone').value.trim();
+    if (!/^0\d{9}$/.test(momoPhone)) {
+      return setResult(formResult, 'err', '<h3>Invalid Mobile Money number</h3><p>Enter 10 digits starting with 0.</p>');
+    }
+    const activeNetBtn = document.querySelector('#momoNetGrid .net-btn[data-active="true"]');
+    momoNetwork = activeNetBtn ? activeNetBtn.dataset.net : modalState.network;
+  }
+
+  modalState.recipientPhone = recipientPhone;
+  modalState.momoPhone = momoPhone;
+  modalState.momoNetwork = momoNetwork;
+
+  const orig = modalPayBtn.textContent;
+  modalPayBtn.disabled = true;
+  modalPayBtn.innerHTML = '<span class="spinner"></span> Starting…';
 
   try {
-    const r = await api('/api/orders/init', {
+    const r = await api('/api/orders/charge/init', {
       method: 'POST',
-      body: { 
-        type:'data', 
-        network:state.network, 
-        capacity:state.selectedPkg.capacity, 
-        phoneNumber:phone,
-        email: phone + '@paystack.com'  // Use phone as email for Paystack
+      body: {
+        type: 'data',
+        network: modalState.network,
+        capacity: modalState.pkg.capacity,
+        recipientPhone,
+        momoPhone,
+        momoNetwork,
       }
     });
-    window.location.href = r.data.authorizationUrl;
+    modalState.reference = r.data.reference;
+    handleChargeResponse(r.data);
   } catch(e) {
-    setResult(buyResult,'err',`<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
-    buyBtn.disabled = false;
-    buyLabel.textContent = orig;
+    setResult(formResult, 'err', `<h3>Payment error</h3><p>${e.data?.message||e.message}</p>`);
+  } finally {
+    modalPayBtn.disabled = false;
+    modalPayBtn.textContent = orig;
   }
 });
+
+function handleChargeResponse(data){
+  modalState.reference = data.reference || modalState.reference;
+
+  if (data.chargeStatus === 'pay_offline') {
+    document.getElementById('payOfflineText').textContent =
+      data.displayText || 'A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.';
+    showModalStep('modalStepPayOffline');
+  } else if (data.chargeStatus === 'send_otp') {
+    document.getElementById('modalOtpInput').value = '';
+    showModalStep('modalStepOtp');
+  } else if (data.chargeStatus === 'success') {
+    pollModalOrderStatus(modalState.reference);
+  } else {
+    setResult(document.getElementById('modalFormResult'), 'err', '<h3>Payment could not be started</h3><p>Please try again.</p>');
+  }
+}
+
+document.getElementById('offlineBackBtn').addEventListener('click', () => showModalStep('modalStepForm'));
+
+document.getElementById('ivePaidBtn').addEventListener('click', () => {
+  pollModalOrderStatus(modalState.reference);
+});
+
+document.getElementById('modalOtpBtn').addEventListener('click', async () => {
+  const otpInput = document.getElementById('modalOtpInput');
+  const otpResult = document.getElementById('modalOtpResult');
+  const otpBtn = document.getElementById('modalOtpBtn');
+  clearResult(otpResult);
+
+  const otp = otpInput.value.trim();
+  if (!otp) return setResult(otpResult, 'err', '<h3>Enter the code</h3>');
+
+  const orig = otpBtn.textContent;
+  otpBtn.disabled = true;
+  otpBtn.innerHTML = '<span class="spinner"></span> Verifying…';
+
+  try {
+    const r = await api('/api/orders/charge/otp', {
+      method: 'POST',
+      body: { reference: modalState.reference, otp }
+    });
+    handleChargeResponse(r.data);
+  } catch(e) {
+    setResult(otpResult, 'err', `<h3>Verification failed</h3><p>${e.data?.message||e.message}</p>`);
+  } finally {
+    otpBtn.disabled = false;
+    otpBtn.textContent = orig;
+  }
+});
+
+async function pollModalOrderStatus(reference){
+  showModalStep('modalStepStatus');
+  const body = document.getElementById('modalStatusBody');
+  body.innerHTML = '<p class="panel-sub"><span class="spinner"></span> Confirming your payment…</p>';
+
+  const poll = async () => {
+    try {
+      const r = await api('/api/orders/'+encodeURIComponent(reference));
+      const { cls, title, body: rowsHtml } = describeOrder(r.data);
+      body.innerHTML = `<div class="receipt ${cls}"><h3>${title}</h3>${rowsHtml}</div>`;
+      const s = r.data.status || r.data.orderStatus || '';
+      return ['fulfilled','completed','payment_failed','fulfillment_failed','failed'].includes(s);
+    } catch(e) {
+      body.innerHTML = `<div class="receipt err"><h3>Error</h3><p>${e.data?.message||e.message}</p></div>`;
+      return true;
+    }
+  };
+
+  let done = await poll();
+  let attempts = 0;
+  const interval = setInterval(async () => {
+    attempts++;
+    if (done || attempts > 24) { clearInterval(interval); return; }
+    done = await poll();
+  }, 2500);
+}
 
 // ============================================================
 // VERIFY

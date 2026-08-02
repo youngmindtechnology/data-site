@@ -34,6 +34,12 @@ function networkLabelFor(net) {
   return { YELLO: 'MTN', TELECEL: 'Telecel', AT_PREMIUM: 'AirtelTigo' }[net] || net;
 }
 
+// Maps our internal network codes to the provider codes Paystack's
+// Mobile Money charge API expects.
+function toPaystackProvider(net) {
+  return { YELLO: 'mtn', TELECEL: 'vod', AT_PREMIUM: 'tgo' }[net] || String(net || '').toLowerCase();
+}
+
 const PAYSTACK_FEE_PERCENT = Number(process.env.PAYSTACK_FEE_PERCENT || 1.95);
 const PASS_PAYSTACK_FEE_TO_CUSTOMER = String(process.env.PASS_PAYSTACK_FEE_TO_CUSTOMER ?? 'true').toLowerCase() === 'true';
 
@@ -75,6 +81,7 @@ function newReference() {
 
 function isValidPhone(p) { return typeof p === 'string' && /^0\d{9}$/.test(p); }
 function isValidEmail(e) { return typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+const VALID_NETWORKS = ['YELLO', 'TELECEL', 'AT_PREMIUM'];
 
 function relay(res, err) {
   if (err.response) return res.status(err.response.status).json(err.response.data);
@@ -159,7 +166,7 @@ app.post('/api/verify-number', verifyThrottle, async (req, res) => {
 });
 
 /* ============================================================
-   ORDERS — customer starts a purchase
+   ORDERS — customer starts a purchase (hosted checkout redirect)
    ============================================================ */
 
 app.post('/api/orders/init', async (req, res) => {
@@ -221,7 +228,7 @@ app.post('/api/orders/init', async (req, res) => {
   email,
   amountPesewas: Math.round(order.amount * 100),
   reference: order.reference,
-  callback_url: `${BASE_URL}/api/payment/callback`,  // ← This builds the URL
+  callback_url: `${BASE_URL}/api/payment/callback`,
   metadata: { type: order.type, phoneNumber },
    });
 
@@ -236,6 +243,139 @@ app.post('/api/orders/init', async (req, res) => {
     res.json({
       status: 'success',
       data: { reference: order.reference, authorizationUrl: order.authorizationUrl, amount: order.amount },
+    });
+  } catch (err) { relay(res, err); }
+});
+
+/* ============================================================
+   ORDERS — direct Mobile Money charge (modal flow)
+   Customer enters a beneficiary number + a MoMo number/network and
+   pays right there via a USSD/approval prompt or OTP, no redirect.
+   ============================================================ */
+
+app.post('/api/orders/charge/init', async (req, res) => {
+  try {
+    const { type, network, capacity, recipientPhone, momoPhone, momoNetwork } = req.body;
+
+    if (type !== 'data') {
+      return res.status(400).json({ status: 'error', message: 'This payment flow currently supports data bundles only.' });
+    }
+    if (!isValidPhone(recipientPhone)) {
+      return res.status(400).json({ status: 'error', message: 'Enter a valid beneficiary number, e.g. 0551234567.' });
+    }
+    if (!isValidPhone(momoPhone)) {
+      return res.status(400).json({ status: 'error', message: 'Enter a valid Mobile Money number.' });
+    }
+    if (!VALID_NETWORKS.includes(momoNetwork)) {
+      return res.status(400).json({ status: 'error', message: 'Select the Mobile Money network to pay with.' });
+    }
+
+    const pkgRes = await datamart.getPackages();
+    const list = (pkgRes.data && pkgRes.data[network]) || [];
+    const pkg = list.find((p) => String(p.capacity) === String(capacity));
+    if (!pkg) return res.status(400).json({ status: 'error', message: 'That bundle is not available right now.' });
+
+    const order = {
+      reference: newReference(),
+      type: 'data',
+      status: 'pending',
+      network,
+      capacity: pkg.capacity,
+      phoneNumber: recipientPhone,
+      momoPhone,
+      momoNetwork,
+      email: `${momoPhone}@paystack.com`,
+      amount: chargePriceFor(network, pkg.capacity, pkg.price),
+      createdAt: new Date().toISOString(),
+    };
+    orders.save(order);
+
+    let chargeRes;
+    try {
+      chargeRes = await paystack.chargeMobileMoney({
+        email: order.email,
+        amountPesewas: Math.round(order.amount * 100),
+        reference: order.reference,
+        phone: momoPhone,
+        provider: toPaystackProvider(momoNetwork),
+        metadata: { type: order.type, phoneNumber: recipientPhone },
+      });
+    } catch (chargeErr) {
+      order.status = 'payment_failed';
+      orders.save(order);
+      return relay(res, chargeErr);
+    }
+
+    const chargeStatus = chargeRes.data && chargeRes.data.status;
+    order.chargeStatus = chargeStatus;
+    orders.save(order);
+
+    if (chargeStatus === 'success') {
+      await fulfillOrder(order.reference);
+      return res.json({ status: 'success', data: { reference: order.reference, chargeStatus: 'success' } });
+    }
+    if (chargeStatus === 'pay_offline') {
+      return res.json({
+        status: 'success',
+        data: {
+          reference: order.reference,
+          chargeStatus: 'pay_offline',
+          displayText: chargeRes.data.display_text || 'A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.',
+        },
+      });
+    }
+    if (chargeStatus === 'send_otp') {
+      return res.json({ status: 'success', data: { reference: order.reference, chargeStatus: 'send_otp' } });
+    }
+
+    order.status = 'payment_failed';
+    orders.save(order);
+    return res.status(400).json({
+      status: 'error',
+      message: (chargeRes.data && chargeRes.data.gateway_response) || 'Payment could not be started. Please try again.',
+    });
+  } catch (err) { relay(res, err); }
+});
+
+app.post('/api/orders/charge/otp', async (req, res) => {
+  try {
+    const { reference, otp } = req.body;
+    if (!reference || !otp) {
+      return res.status(400).json({ status: 'error', message: 'Reference and verification code are required.' });
+    }
+
+    const order = orders.get(reference);
+    if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
+
+    const otpRes = await paystack.submitOtp({ otp, reference });
+    const chargeStatus = otpRes.data && otpRes.data.status;
+    order.chargeStatus = chargeStatus;
+    orders.save(order);
+
+    if (chargeStatus === 'success') {
+      await fulfillOrder(reference);
+      return res.json({ status: 'success', data: { reference, chargeStatus: 'success' } });
+    }
+    if (chargeStatus === 'pay_offline') {
+      return res.json({
+        status: 'success',
+        data: {
+          reference,
+          chargeStatus: 'pay_offline',
+          displayText: otpRes.data.display_text || 'Approve the prompt sent to your phone to finish paying.',
+        },
+      });
+    }
+    if (chargeStatus === 'send_otp') {
+      // Some networks issue a second OTP round.
+      return res.json({ status: 'success', data: { reference, chargeStatus: 'send_otp' } });
+    }
+
+    order.status = 'payment_failed';
+    orders.save(order);
+    return res.status(400).json({
+      status: 'error',
+      message: (otpRes.data && otpRes.data.gateway_response) || 'That code was invalid or has expired.',
     });
   } catch (err) { relay(res, err); }
 });
