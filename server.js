@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
+const axios = require('axios'); 
 
 const datamart = require('./lib/datamart');
 const paystack = require('./lib/paystack');
@@ -494,9 +495,6 @@ app.get('/api/orders/:reference', async (req, res) => {
 /* ============================================================
    MANUAL ORDER LOOKUP / SEARCH
    ============================================================ */
-
-// Express route: Queries DataMart directly without checking a local DB
-const axios = require('axios');
 
 app.post('/api/orders/lookup', async (req, res) => {
   const { reference } = req.body;
