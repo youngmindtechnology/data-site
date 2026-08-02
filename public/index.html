@@ -27,7 +27,8 @@
 <meta name="twitter:description" content="Buy affordable MTN, Telecel & AirtelTigo data bundles instantly, plus WAEC & BECE checker PINs. Fast delivery, secure payment.">
 <meta name="twitter:image" content="https://youngmind.shop/asset/img.jpeg">
 
-<link rel="icon" type="image/png" href="../asset/img.jpeg">
+<link rel="icon" type="image/jpeg" href="/asset/img.jpeg">
+<link rel="apple-touch-icon" href="/asset/img.jpeg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -356,30 +357,47 @@
   footer{ text-align:center; color:var(--text-soft); font-size:12px; padding:20px 0; }
 
   /* ============================================================
-     PROMO BANNER (join WhatsApp group)
-     ============================================================ */
-  .promo-banner{
-    background: linear-gradient(90deg, var(--brand-yellow), #FFDE59);
-    color:#1A1A2E;
-    display:flex; align-items:center; justify-content:center; gap:12px;
-    padding:10px 40px 10px 16px;
-    font-size:13px; font-weight:600;
-    position:relative;
-    text-align:center;
-    flex-wrap:wrap;
-  }
-  .promo-banner.hidden{ display:none !important; }
-  .promo-banner a{
-    color:#1A1A2E; text-decoration:underline; font-weight:800;
-    white-space:nowrap;
-  }
-  .promo-banner-close{
-    position:absolute; right:8px; top:50%; transform:translateY(-50%);
-    background:rgba(26,26,46,0.12); border:none; border-radius:50%;
-    width:24px; height:24px; font-size:15px; line-height:1;
-    color:#1A1A2E; cursor:pointer;
-  }
-  .promo-banner-close:hover{ background:rgba(26,26,46,0.22); }
+   PROMO OVERLAY (full-screen, shown on every page load)
+   ============================================================ */
+.promo-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,0.75);
+  display:flex; align-items:center; justify-content:center;
+  z-index:300; padding:20px;
+}
+.promo-overlay.hidden{ display:none !important; }
+.promo-box{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius); padding:32px 28px;
+  max-width:380px; width:100%; text-align:center;
+  position:relative; box-shadow:var(--shadow);
+}
+.promo-close{
+  position:absolute; top:12px; right:14px;
+  background:none; border:none; font-size:24px; line-height:1;
+  color:var(--text-soft); cursor:pointer; padding:4px;
+}
+.promo-close:hover{ color:var(--text); }
+.promo-icon{
+  width:64px; height:64px; border-radius:50%;
+  background:#25D366; display:flex; align-items:center; justify-content:center;
+  margin:0 auto 16px;
+}
+.promo-icon svg{ width:32px; height:32px; }
+.promo-box h2{
+  font-family:'Sora',sans-serif; font-size:19px; margin:0 0 8px;
+  color:var(--text);
+}
+.promo-box p{
+  color:var(--text-soft); font-size:14px; margin:0 0 20px;
+}
+.promo-box a.btn-join{
+  display:inline-block; width:100%; box-sizing:border-box;
+  background:var(--brand-yellow); color:#1A1A2E;
+  font-family:'Sora',sans-serif; font-weight:700; font-size:14px;
+  text-decoration:none; padding:12px 20px; border-radius:10px;
+  transition:all 0.3s;
+}
+.promo-box a.btn-join:hover{ transform:translateY(-2px); box-shadow:0 4px 16px rgba(255,203,5,0.3); }
 
   /* ============================================================
      FLOATING WHATSAPP BUTTON (draggable)
@@ -421,10 +439,19 @@
      PROMO BANNER — shown on every page load, dismissible for the session
      Replace WHATSAPP_GROUP_LINK below with your real group invite link.
      ============================================================ -->
-<div class="promo-banner" id="promoBanner">
-  <span>📢 Join our WhatsApp group for bundle deals &amp; updates —</span>
-  <a href="https://chat.whatsapp.com/LemPKfR3rclI2Y6SFggjIm?s=cl&p=i&ilr=0&amv=1" target="_blank" rel="noopener">Join now</a>
-  <button class="promo-banner-close" id="promoBannerClose" aria-label="Dismiss">&times;</button>
+<div class="promo-overlay" id="promoBanner">
+  <div class="promo-box">
+    <button class="promo-close" id="promoBannerClose" aria-label="Dismiss">&times;</button>
+    <div class="promo-icon">
+      <svg viewBox="0 0 32 32" fill="#fff" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 3C9.373 3 4 8.373 4 15c0 2.386.703 4.61 1.912 6.47L4 29l7.72-1.877A11.94 11.94 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3zm0 21.818a9.78 9.78 0 0 1-4.98-1.363l-.357-.213-3.61.878.902-3.594-.234-.37A9.79 9.79 0 0 1 6.182 15c0-5.42 4.398-9.818 9.818-9.818S25.818 9.58 25.818 15 21.42 24.818 16 24.818z"/>
+        <path d="M21.16 17.657c-.283-.142-1.677-.828-1.937-.923-.26-.095-.45-.142-.638.142-.19.283-.733.923-.9 1.113-.166.19-.332.213-.615.07-.283-.142-1.195-.44-2.276-1.404-.841-.75-1.409-1.677-1.574-1.96-.166-.284-.018-.437.124-.578.128-.127.283-.331.425-.497.142-.166.19-.284.284-.473.095-.19.047-.355-.024-.497-.07-.142-.638-1.537-.874-2.105-.23-.553-.464-.478-.638-.487a12 12 0 0 0-.544-.01c-.19 0-.497.07-.757.355-.26.284-.994.972-.994 2.37 0 1.396 1.018 2.745 1.16 2.934.142.19 2.003 3.06 4.854 4.29.678.293 1.207.468 1.62.6.68.216 1.3.185 1.79.112.546-.082 1.677-.686 1.913-1.348.236-.663.236-1.23.166-1.349-.07-.118-.26-.19-.544-.33z"/>
+      </svg>
+    </div>
+    <h2>Join our WhatsApp group</h2>
+    <p>Get bundle deals, price drops &amp; delivery updates first.</p>
+    <a class="btn-join" href="https://chat.whatsapp.com/LemPKfR3rclI2Y6SFggjIm?s=cl&p=i&ilr=0&amv=1" target="_blank" rel="noopener">Join now</a>
+  </div>
 </div>
 
 <!-- ============================================================
