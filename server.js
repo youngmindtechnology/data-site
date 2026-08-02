@@ -380,6 +380,74 @@ app.post('/api/orders/charge/otp', async (req, res) => {
   } catch (err) { relay(res, err); }
 });
 
+/**
+ * The customer taps "I've completed payment" — this must NEVER just echo
+ * back our locally-stored status, because that status only changes once
+ * Paystack's webhook fires (or this route runs). We ask Paystack directly
+ * every time, and only ever report success once Paystack itself says so.
+ */
+app.post('/api/orders/charge/verify', async (req, res) => {
+  try {
+    const { reference } = req.body;
+    if (!reference) return res.status(400).json({ status: 'error', message: 'Reference is required.' });
+
+    const order = orders.get(reference);
+    if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
+
+    // Already resolved (e.g. the webhook beat us to it) — no need to re-ask Paystack.
+    if (order.status === 'fulfilled') {
+      return res.json({ status: 'success', data: { reference, chargeStatus: 'success' } });
+    }
+    if (order.status === 'fulfillment_failed') {
+      return res.json({ status: 'success', data: { reference, chargeStatus: 'success', note: 'Payment succeeded; delivery is being retried.' } });
+    }
+    if (order.status === 'payment_failed') {
+      return res.json({ status: 'success', data: { reference, chargeStatus: 'failed', message: 'This payment was not approved.' } });
+    }
+
+    let chargeStatus = 'pending';
+    try {
+      const chargeRes = await paystack.checkPendingCharge(reference);
+      chargeStatus = (chargeRes.data && chargeRes.data.status) || 'pending';
+    } catch (checkErr) {
+      // Fall back to a plain transaction verify if the charge lookup itself fails.
+      try {
+        const v = await paystack.verifyTransaction(reference);
+        chargeStatus = v.data && v.data.status === 'success' ? 'success' : 'pending';
+      } catch (verifyErr) {
+        return res.json({
+          status: 'success',
+          data: { reference, chargeStatus: 'pending', message: "We couldn't confirm your payment yet. Please try again in a moment." },
+        });
+      }
+    }
+
+    order.chargeStatus = chargeStatus;
+    orders.save(order);
+
+    if (chargeStatus === 'success') {
+      await fulfillOrder(reference);
+      return res.json({ status: 'success', data: { reference, chargeStatus: 'success' } });
+    }
+
+    if (['failed', 'abandoned', 'reversed', 'timeout'].includes(chargeStatus)) {
+      order.status = 'payment_failed';
+      orders.save(order);
+      return res.json({ status: 'success', data: { reference, chargeStatus: 'failed', message: 'This payment was not approved.' } });
+    }
+
+    // Still pay_offline / send_otp / pending — nothing confirmed yet. Do not tell the customer it's done.
+    return res.json({
+      status: 'success',
+      data: {
+        reference,
+        chargeStatus: 'pending',
+        message: "We haven't received your approval yet. Approve the prompt on your phone, or dial the USSD code to approve, then check again.",
+      },
+    });
+  } catch (err) { relay(res, err); }
+});
+
 /* ============================================================
    FULFILLMENT
    ============================================================ */

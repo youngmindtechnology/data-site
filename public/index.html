@@ -538,7 +538,8 @@
     <!-- Step 2a: pay_offline — customer approves a USSD/PIN prompt -->
     <div id="modalStepPayOffline" class="hidden">
       <div class="modal-title">Approve payment on your phone</div>
-      <p class="panel-sub" id="payOfflineText">A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.</p>
+      <p class="panel-sub" id="payOfflineText" style="margin-bottom:8px;">A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.</p>
+      <p class="hint" id="payOfflineUssdHint" style="margin-bottom:16px;"></p>
       <button class="btn btn-primary" id="ivePaidBtn">I've completed payment</button>
       <button class="btn btn-secondary" id="offlineBackBtn" style="margin-top:8px;">Back</button>
       <div class="result" id="modalOfflineResult"></div>
@@ -853,12 +854,21 @@ modalPayBtn.addEventListener('click', async () => {
   }
 });
 
+function ussdHintFor(network){
+  if (network === 'YELLO') {
+    return "Didn't get a prompt? Dial <b>*170#</b> on your phone and approve the pending payment.";
+  }
+  return "Didn't get a prompt? Open your Mobile Money menu (USSD) on your phone and approve the pending payment.";
+}
+
 function handleChargeResponse(data){
   modalState.reference = data.reference || modalState.reference;
 
   if (data.chargeStatus === 'pay_offline') {
     document.getElementById('payOfflineText').textContent =
       data.displayText || 'A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.';
+    document.getElementById('payOfflineUssdHint').innerHTML = ussdHintFor(modalState.momoNetwork);
+    clearResult(document.getElementById('modalOfflineResult'));
     showModalStep('modalStepPayOffline');
   } else if (data.chargeStatus === 'send_otp') {
     document.getElementById('modalOtpInput').value = '';
@@ -872,8 +882,33 @@ function handleChargeResponse(data){
 
 document.getElementById('offlineBackBtn').addEventListener('click', () => showModalStep('modalStepForm'));
 
-document.getElementById('ivePaidBtn').addEventListener('click', () => {
-  pollModalOrderStatus(modalState.reference);
+document.getElementById('ivePaidBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('ivePaidBtn');
+  const offlineResult = document.getElementById('modalOfflineResult');
+  clearResult(offlineResult);
+
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Checking with your network…';
+
+  try {
+    // Always ask Paystack directly — never assume "I've paid" means it actually went through.
+    const r = await api('/api/orders/charge/verify', { method: 'POST', body: { reference: modalState.reference } });
+    const d = r.data;
+
+    if (d.chargeStatus === 'success') {
+      pollModalOrderStatus(modalState.reference);
+    } else if (d.chargeStatus === 'failed') {
+      setResult(offlineResult, 'err', `<h3>Payment not approved</h3><p>${d.message || 'This payment was not completed. You can go back and try again.'}</p>`);
+    } else {
+      setResult(offlineResult, 'warn', `<h3>Not confirmed yet</h3><p>${d.message || "We haven't received your approval yet."}</p>`);
+    }
+  } catch(e) {
+    setResult(offlineResult, 'err', `<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
 });
 
 document.getElementById('modalOtpBtn').addEventListener('click', async () => {
