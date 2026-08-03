@@ -404,6 +404,13 @@
   <!-- Stats -->
   <div class="stats-grid" id="stats"></div>
 
+  <!-- DataMart Wallet Balance -->
+  <div class="stat-card" id="balanceCard" style="margin-bottom:24px;">
+    <div class="label">💳 DataMart Balance</div>
+    <div class="value info" id="balanceValue">Loading…</div>
+    <div class="sub" id="balanceUpdated" style="font-size:11px; color:var(--text-soft); margin-top:4px;"></div>
+  </div>
+
   <!-- Orders Table -->
   <div class="table-wrapper">
     <div class="table-scroll">
@@ -501,6 +508,29 @@ async function adminApi(path, opts = {}){
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || 'Request failed');
   return data;
+}
+
+// ============================================================
+// DATAMART WALLET BALANCE
+// ============================================================
+async function loadBalance(){
+  const el = document.getElementById('balanceValue');
+  const updatedEl = document.getElementById('balanceUpdated');
+  try {
+    const r = await adminApi('/admin/api/balance');
+    const { balance, currency, timestamp } = r.data;
+
+    el.textContent = `${currency || 'GH₵'} ${money(balance)}`;
+    el.classList.remove('bad', 'info');
+    el.classList.add(Number(balance) < 20 ? 'bad' : 'info');
+
+    updatedEl.textContent = timestamp ? 'Updated ' + formatDate(timestamp) : '';
+  } catch (e) {
+    el.textContent = 'Error';
+    el.classList.add('bad');
+    updatedEl.textContent = '';
+    console.error('Balance load failed:', e.message);
+  }
 }
 
 function money(n){ const num = Number(n); return isNaN(num) ? n : num.toFixed(2); }
@@ -676,14 +706,17 @@ async function enter(){
   ADMIN_KEY = document.getElementById('keyInput').value.trim() || ADMIN_KEY;
   try {
     await loadOrders();
+    await loadBalance();
     document.getElementById('gate').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     if (window.refreshInterval) clearInterval(window.refreshInterval);
-    window.refreshInterval = setInterval(loadOrders, 15000);
+    window.refreshInterval = setInterval(() => { loadOrders(); loadBalance(); }, 15000);
   } catch (e) {
     document.getElementById('gateError').textContent = '❌ Wrong key or server error.';
   }
 }
+
+document.getElementById('refreshBtn').addEventListener('click', () => { loadOrders(); loadBalance(); });
 
 document.getElementById('enterBtn').addEventListener('click', enter);
 document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') enter(); });

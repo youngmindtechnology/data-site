@@ -1,4 +1,5 @@
 require('dotenv').config();
+const connectDB = require("./lib/database");
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
@@ -267,7 +268,7 @@ app.post('/api/orders/init', async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Unknown order type.' });
     }
 
-    orders.save(order);
+    await orders.save(order);
 
    const paystackRes = await paystack.initializeTransaction({
   email,
@@ -283,7 +284,7 @@ app.post('/api/orders/init', async (req, res) => {
     }
 
     order.authorizationUrl = paystackRes.data.authorization_url;
-    orders.save(order);
+    await orders.save(order);
 
     res.json({
       status: 'success',
@@ -333,7 +334,7 @@ app.post('/api/orders/charge/init', async (req, res) => {
       amount: chargePriceFor(network, pkg.capacity, pkg.price),
       createdAt: new Date().toISOString(),
     };
-    orders.save(order);
+    await orders.save(order);
 
     let chargeRes;
     try {
@@ -347,13 +348,13 @@ app.post('/api/orders/charge/init', async (req, res) => {
       });
     } catch (chargeErr) {
       order.status = 'payment_failed';
-      orders.save(order);
+      await orders.save(order);
       return relay(res, chargeErr);
     }
 
     const chargeStatus = chargeRes.data && chargeRes.data.status;
     order.chargeStatus = chargeStatus;
-    orders.save(order);
+    await orders.save(order);
 
     if (chargeStatus === 'success') {
       await fulfillOrder(order.reference);
@@ -374,7 +375,7 @@ app.post('/api/orders/charge/init', async (req, res) => {
     }
 
     order.status = 'payment_failed';
-    orders.save(order);
+    await orders.save(order);
     return res.status(400).json({
       status: 'error',
       message: (chargeRes.data && chargeRes.data.gateway_response) || 'Payment could not be started. Please try again.',
@@ -389,13 +390,13 @@ app.post('/api/orders/charge/otp', async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Reference and verification code are required.' });
     }
 
-    const order = orders.get(reference);
+    const order = await orders.get(reference);
     if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
 
     const otpRes = await paystack.submitOtp({ otp, reference });
     const chargeStatus = otpRes.data && otpRes.data.status;
     order.chargeStatus = chargeStatus;
-    orders.save(order);
+    await orders.save(order);
 
     if (chargeStatus === 'success') {
       await fulfillOrder(reference);
@@ -417,7 +418,7 @@ app.post('/api/orders/charge/otp', async (req, res) => {
     }
 
     order.status = 'payment_failed';
-    orders.save(order);
+    await orders.save(order);
     return res.status(400).json({
       status: 'error',
       message: (otpRes.data && otpRes.data.gateway_response) || 'That code was invalid or has expired.',
@@ -436,7 +437,7 @@ app.post('/api/orders/charge/verify', async (req, res) => {
     const { reference } = req.body;
     if (!reference) return res.status(400).json({ status: 'error', message: 'Reference is required.' });
 
-    const order = orders.get(reference);
+    const order = await orders.get(reference);
     if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
 
     // Already resolved (e.g. the webhook beat us to it) — no need to re-ask Paystack.
@@ -468,7 +469,7 @@ app.post('/api/orders/charge/verify', async (req, res) => {
     }
 
     order.chargeStatus = chargeStatus;
-    orders.save(order);
+    await orders.save(order);
 
     if (chargeStatus === 'success') {
       await fulfillOrder(reference);
@@ -477,7 +478,7 @@ app.post('/api/orders/charge/verify', async (req, res) => {
 
     if (['failed', 'abandoned', 'reversed', 'timeout'].includes(chargeStatus)) {
       order.status = 'payment_failed';
-      orders.save(order);
+      await orders.save(order);
       return res.json({ status: 'success', data: { reference, chargeStatus: 'failed', message: 'This payment was not approved.' } });
     }
 
@@ -499,12 +500,12 @@ app.post('/api/orders/charge/verify', async (req, res) => {
 
 async function fulfillOrder(reference) {
   return orders.withLock(reference, async () => {
-    const order = orders.get(reference);
+    const order = await orders.get(reference);
     if (!order) return null;
     if (order.status === 'fulfilled') return order;
 
     order.status = 'paid';
-    orders.save(order);
+    await orders.save(order);
 
     try {
       let result;
@@ -549,7 +550,7 @@ async function fulfillOrder(reference) {
         }
 
         order.confirmationSmsSent = true;
-        orders.save(order);
+        await orders.save(order);
 
         sms.sendSms(order.phoneNumber, smsMessage)
           .catch((smsErr) => console.error(`Confirmation SMS failed for ${order.reference}:`, smsErr.message));
@@ -564,7 +565,7 @@ async function fulfillOrder(reference) {
 
       if (!order.failureSmsSent) {
         order.failureSmsSent = true;
-        orders.save(order);
+        await orders.save(order);
 
         const customerMsg = `We received your payment for ${itemLabel}! Delivery is being processed. Quote Ref: ${order.reference} if you need support. - Young Mind Data Plug`;
         sms.sendSms(order.phoneNumber, customerMsg)
@@ -578,7 +579,7 @@ async function fulfillOrder(reference) {
       }
     }
 
-    orders.save(order);
+    await orders.save(order);
     return order;
   });
 }
@@ -587,7 +588,7 @@ app.get('/api/payment/callback', async (req, res) => {
   const reference = req.query.reference || req.query.trxref;
   try {
     const v = await paystack.verifyTransaction(reference);
-    const order = orders.get(reference);
+    const order = await orders.get(reference);
 
     if (v.data?.status === 'success' && order && Math.round(order.amount * 100) === v.data.amount) {
       await fulfillOrder(reference);
@@ -616,7 +617,7 @@ app.post('/webhook/paystack', async (req, res) => {
     const reference = event.data.reference;
     try {
       const v = await paystack.verifyTransaction(reference);
-      const order = orders.get(reference);
+      const order = await orders.get(reference);
       if (v.data?.status === 'success' && order && Math.round(order.amount * 100) === v.data.amount) {
         await fulfillOrder(reference);
       }
@@ -668,7 +669,7 @@ async function attachLiveDataStatus(safe, order) {
 }
 
 app.get('/api/orders/:reference', async (req, res) => {
-  const order = orders.get(req.params.reference);
+  const order = await orders.get(req.params.reference);
   if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
   const safe = await attachLiveDataStatus(buildSafeOrder(order), order);
   res.json({ status: 'success', data: safe });
@@ -717,8 +718,11 @@ app.post('/api/orders/lookup', async (req, res) => {
 
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-app.get('/admin/api/orders', requireAdmin, (req, res) => {
-  res.json({ status: 'success', data: orders.list() });
+app.get('/admin/api/orders', requireAdmin, async (req, res) => {
+  res.json({
+    status: 'success',
+    data: await orders.list()
+  });
 });
 
 app.get('/admin/api/balance', requireAdmin, async (req, res) => {
@@ -732,11 +736,9 @@ app.get('/admin/api/balance', requireAdmin, async (req, res) => {
 app.delete('/admin/api/orders/:reference', requireAdmin, async (req, res) => {
   const reference = req.params.reference;
   const result = await orders.withLock(reference, async () => {
-    const order = orders.get(reference);
+    const order = await orders.get(reference);
     if (!order) return { found: false };
-    const all = orders.readAll();
-    delete all[reference];
-    orders.writeAll(all);
+    await orders.remove(reference);
     return { found: true };
   });
   if (!result.found) {
@@ -746,14 +748,14 @@ app.delete('/admin/api/orders/:reference', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/api/orders/:reference/retry', requireAdmin, async (req, res) => {
-  const order = orders.get(req.params.reference);
+  const order = await orders.get(req.params.reference);
   if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
   const updated = await fulfillOrder(order.reference);
   res.json({ status: 'success', data: updated });
 });
 
 app.get('/admin/api/orders/:reference/datamart-status', requireAdmin, async (req, res) => {
-  const order = orders.get(req.params.reference);
+  const order = await orders.get(req.params.reference);
   if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
   if (!order.fulfillment) {
     return res.status(400).json({ status: 'error', message: 'This order has no DataMart reference on file yet — it has not been fulfilled.' });
@@ -770,4 +772,13 @@ app.get('/admin/api/orders/:reference/datamart-status', requireAdmin, async (req
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Young Mind Data Plug running at ${BASE_URL}`));
+
+connectDB()
+    .then(() => {
+        app.listen(PORT, () => {
+            console.log(`🚀 Young Mind Data Plug running at ${BASE_URL}`);
+        });
+    })
+    .catch((err) => {
+        console.error(err);
+    });
