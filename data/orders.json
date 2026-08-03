@@ -180,20 +180,6 @@
     },
     "confirmationSmsSent": true
   },
-  "YMDP-MSBWKLQZ-EEB67E": {
-    "reference": "YMDP-MSBWKLQZ-EEB67E",
-    "type": "data",
-    "status": "fulfillment_failed",
-    "network": "YELLO",
-    "capacity": "100",
-    "phoneNumber": "0539251306",
-    "email": "isaacappiah0533980571@gmail.com",
-    "amount": 417.13,
-    "createdAt": "2026-08-02T14:35:52.475Z",
-    "authorizationUrl": "https://checkout.paystack.com/vu1iq4fsnvide0t",
-    "fulfillmentError": "Insufficient wallet balance",
-    "failureSmsSent": true
-  },
   "YMDP-MSBWQY82-FF3AEB": {
     "reference": "YMDP-MSBWQY82-FF3AEB",
     "type": "data",
@@ -205,61 +191,5 @@
     "amount": 41.82,
     "createdAt": "2026-08-02T14:40:48.579Z",
     "authorizationUrl": "https://checkout.paystack.com/0edbc6rda3qqs7d"
-  },
-  "YMDP-MSC2T73W-5FF747": {
-    "reference": "YMDP-MSC2T73W-5FF747",
-    "type": "data",
-    "status": "pending",
-    "network": "YELLO",
-    "capacity": "1",
-    "phoneNumber": "0533980571",
-    "momoPhone": "0533980571",
-    "momoNetwork": "YELLO",
-    "email": "0533980571@paystack.com",
-    "amount": 5,
-    "createdAt": "2026-08-02T17:30:31.101Z",
-    "chargeStatus": "pay_offline"
-  },
-  "YMDP-MSC35YKQ-79B854": {
-    "reference": "YMDP-MSC35YKQ-79B854",
-    "type": "data",
-    "status": "pending",
-    "network": "YELLO",
-    "capacity": "1",
-    "phoneNumber": "0533980571",
-    "momoPhone": "0539251306",
-    "momoNetwork": "YELLO",
-    "email": "0539251306@paystack.com",
-    "amount": 5,
-    "createdAt": "2026-08-02T17:40:26.570Z",
-    "chargeStatus": "pay_offline"
-  },
-  "YMDP-MSC37NCG-A64053": {
-    "reference": "YMDP-MSC37NCG-A64053",
-    "type": "data",
-    "status": "pending",
-    "network": "YELLO",
-    "capacity": "1",
-    "phoneNumber": "0533980571",
-    "momoPhone": "0533980571",
-    "momoNetwork": "YELLO",
-    "email": "0533980571@paystack.com",
-    "amount": 5,
-    "createdAt": "2026-08-02T17:41:45.328Z",
-    "chargeStatus": "pay_offline"
-  },
-  "YMDP-MSC38LF6-5E5596": {
-    "reference": "YMDP-MSC38LF6-5E5596",
-    "type": "data",
-    "status": "pending",
-    "network": "YELLO",
-    "capacity": "1",
-    "phoneNumber": "0533980571",
-    "momoPhone": "0533980571",
-    "momoNetwork": "YELLO",
-    "email": "0533980571@paystack.com",
-    "amount": 5,
-    "createdAt": "2026-08-02T17:42:29.490Z",
-    "chargeStatus": "pay_offline"
   }
 }

@@ -726,18 +726,22 @@ app.get('/admin/api/balance', requireAdmin, async (req, res) => {
 });
 
 // DELETE order by reference
-app.delete('/admin/api/orders/:reference', requireAdmin, (req, res) => {
+// DELETE order by reference — routed through the same per-reference
+// lock that fulfillOrder() uses, so a delete can never race a
+// fulfillment write and get silently overwritten.
+app.delete('/admin/api/orders/:reference', requireAdmin, async (req, res) => {
   const reference = req.params.reference;
-  const order = orders.get(reference);
-  
-  if (!order) {
+  const result = await orders.withLock(reference, async () => {
+    const order = orders.get(reference);
+    if (!order) return { found: false };
+    const all = orders.readAll();
+    delete all[reference];
+    orders.writeAll(all);
+    return { found: true };
+  });
+  if (!result.found) {
     return res.status(404).json({ status: 'error', message: 'Order not found.' });
   }
-  
-  const all = orders.readAll();
-  delete all[reference];
-  orders.writeAll(all);
-  
   res.json({ status: 'success', message: 'Order deleted successfully.' });
 });
 
