@@ -4,7 +4,7 @@ const axios = require('axios');
 // CONFIGURATION - Put your actual DataMart API Key here
 // ===================================================
 const API_KEY = 'f9c65cb7d4c87c176406336793d7d40a927c7d533adeaf86622dc1654ee80f2e'; 
-const ORDER_REFERENCE = 'MN-PR0456ZE'; // Put your order reference here
+const ORDER_REFERENCE = 'MN-LW7499VD'; // Put your order reference here
 
 async function testApiKeyAuth() {
   const cleanRef = ORDER_REFERENCE.trim();

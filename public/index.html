@@ -977,15 +977,15 @@ async function loadPackages(){
   } catch(e){ pkgSub.textContent = 'Error loading packages'; }
 }
 
-// NEW
 function renderPackages(){
   const list = state.packages[state.network] || [];
-  pkgSub.textContent = list.length ? `${list.length} bundles` : 'No packages';
+  pkgSub.textContent = list.length ? `${list.length} bundles · incl. ${state.feePercent}% processing fee` : 'No packages';
   pkgGrid.innerHTML = '';
   list.forEach(pkg => {
+    const total = pkg.payable != null ? pkg.payable : priceWithFee(pkg.price);
     const b = document.createElement('button');
     b.className = 'pkg-btn';
-    b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(pkg.price)}</span>`;
+    b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(total)}</span>`;
     b.addEventListener('click', () => openPurchaseModal(pkg));
     pkgGrid.appendChild(b);
   });
@@ -1039,10 +1039,25 @@ function openPurchaseModal(pkg){
   // If the backend already returns a `payable` amount (its own price
   // with fee baked in), trust that and just show a total. Otherwise
   // compute and show a price + processing fee breakdown client-side.
- // NEW
-document.getElementById('modalPkgSummary').innerHTML =
-  `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.price)}`;
-
+  if (pkg.payable != null) {
+    document.getElementById('modalPkgSummary').innerHTML =
+      `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.payable)}`;
+  } else {
+    const fee = feeAmount(pkg.price);
+    const total = priceWithFee(pkg.price);
+    document.getElementById('modalPkgSummary').innerHTML = `
+      <b>${netLabel(state.network)} ${pkg.capacity}GB</b>
+      <div class="row" style="display:flex;justify-content:space-between;margin-top:8px;">
+        <span>Bundle price</span><span>GH₵ ${money(pkg.price)}</span>
+      </div>
+      <div class="row" style="display:flex;justify-content:space-between;">
+        <span>Processing fee (${state.feePercent}%)</span><span>GH₵ ${money(fee)}</span>
+      </div>
+      <div class="row" style="display:flex;justify-content:space-between;font-weight:700;margin-top:4px;padding-top:6px;border-top:1px solid var(--line);">
+        <span>Total to pay</span><span>GH₵ ${money(total)}</span>
+      </div>
+    `;
+  }
   document.getElementById('modalRecipientPhone').value = '';
   document.getElementById('modalMomoPhone').value = '';
   document.getElementById('paySameYes').dataset.active = 'true';
@@ -1303,8 +1318,7 @@ document.getElementById('verifyBtn').addEventListener('click', async () => {
 const checkerGrid = document.getElementById('checkerGrid');
 const checkerSub = document.getElementById('checkerSub');
 const checkerBtn = document.getElementById('checkerBtn');
-// NEW
-checkerLabel.textContent = `Pay GH₵ ${money(p.price)}`;
+const checkerLabel = document.getElementById('checkerBtnLabel');
 const checkerResult = document.getElementById('checkerResult');
 
 async function loadCheckerProducts(){
