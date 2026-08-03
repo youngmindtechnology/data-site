@@ -60,7 +60,7 @@ function addPaystackFee(netAmount) {
 const PRICE_OVERRIDES = {
   'YELLO:1': 5.00,
   'YELLO:6': 25.50,
-  'YELLO:20': 100.00,
+  'YELLO:25': 100.00,
   'YELLO:30': 120.00,
   'YELLO:50': 193.00
 };
@@ -75,7 +75,7 @@ function basePriceFor(network, capacity, cost) {
 function chargePriceFor(network, capacity, cost) {
   const key = `${network}:${capacity}`;
   if (Object.prototype.hasOwnProperty.call(PRICE_OVERRIDES, key)) {
-    return PRICE_OVERRIDES[key];
+    return addPaystackFee(PRICE_OVERRIDES[key]);
   }
   return addPaystackFee(toRetail(cost));
 }
@@ -260,6 +260,8 @@ app.post('/api/orders/init', async (req, res) => {
       if (!prod) return res.status(400).json({ status: 'error', message: 'That checker type is not available.' });
       if (!prod.inStock) return res.status(400).json({ status: 'error', message: `${checkerType} checkers are out of stock right now.` });
 
+      // NOTE: intentionally NOT toRetail(prod.price) — prod.price is DataMart's
+      // raw cost price, not our retail price. Checkers are a fixed ₵19 retail.
       order = {
         reference: newReference(),
         type: 'checker',
@@ -268,7 +270,7 @@ app.post('/api/orders/init', async (req, res) => {
         phoneNumber,
         email,
         skipSms: !!skipSms,
-        amount: addPaystackFee(toRetail(prod.price)),
+        amount: addPaystackFee(CHECKER_PRICE_OVERRIDE),
         createdAt: new Date().toISOString(),
       };
     } else {
@@ -372,7 +374,7 @@ app.post('/api/orders/charge/init', async (req, res) => {
       if (!prod) return res.status(400).json({ status: 'error', message: 'That checker type is not available.' });
       if (!prod.inStock) return res.status(400).json({ status: 'error', message: `${checkerType} checkers are out of stock right now.` });
       
-      amount = addPaystackFee(toRetail(prod.price));
+      amount = addPaystackFee(CHECKER_PRICE_OVERRIDE);
       
       order = {
         reference: newReference(),
