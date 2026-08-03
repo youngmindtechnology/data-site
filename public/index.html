@@ -614,10 +614,10 @@
         <input type="tel" id="checkerPhone" placeholder="0241234567" maxlength="10">
         <div class="hint">SMS with PIN will be sent here.</div>
       </div>
-      <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-soft); margin-bottom:14px; cursor:pointer;">
+      <!-- <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-soft); margin-bottom:14px; cursor:pointer;">
         <input type="checkbox" id="skipSms" style="width:16px;height:16px;">
         Show PIN here instead of SMS
-      </label>
+      </label> -->
       <button class="btn btn-primary" id="checkerBtn" disabled>
   <span id="checkerBtnLabel">Select a checker</span>
 </button>
@@ -1474,7 +1474,7 @@ function renderCheckerProducts(){
 // Replace the checkerBtn click handler in your HTML script
 checkerBtn.addEventListener('click', async () => {
   const phone = document.getElementById('checkerPhone').value.trim();
-  const skip = document.getElementById('skipSms').checked;
+  //const skip = document.getElementById('skipSms').checked;
   clearResult(checkerResult);
   
   if (!/^0\d{9}$/.test(phone)) {
@@ -1488,7 +1488,7 @@ checkerBtn.addEventListener('click', async () => {
     price: state.selectedChecker.price,
     isChecker: true,
     checkerType: state.selectedChecker.name,
-    skipSms: skip
+    //skipSms: skip
   };
   
   openPurchaseModal(checkerPkg, phone);
