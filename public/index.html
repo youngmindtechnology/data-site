@@ -147,29 +147,72 @@
   }
 
   /* ============================================================
-     TABS
+     TABS — horizontal-scrolling pill bar
+     Deliberately NOT an underline strip: filled pills make the
+     active tab obvious at a glance, and the visible edge fade +
+     scrollbar make it clear there's more to scroll to, so this
+     scales cleanly no matter how many tabs get added later.
      ============================================================ */
-  .tabs{
-    display:flex; gap:4px;
+  .tabs-wrap{
+    position:relative;
     margin:24px 0 20px;
-    border-bottom:1px solid var(--line);
-    flex-wrap:wrap;
   }
+  .tabs{
+    display:flex; gap:8px;
+    overflow-x:auto;
+    scroll-snap-type:x proximity;
+    padding:4px 4px 10px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    -webkit-overflow-scrolling:touch;
+  }
+  /* Visible (not hidden) scrollbar — this is the "noticeable" signal */
+  .tabs::-webkit-scrollbar{ height:5px; }
+  .tabs::-webkit-scrollbar-track{ background:transparent; }
+  .tabs::-webkit-scrollbar-thumb{ background:var(--brand-yellow); border-radius:10px; }
+  .tabs{ scrollbar-width:thin; scrollbar-color:var(--brand-yellow) transparent; }
+
   .tab{
-    background:none; border:none;
-    padding:10px 4px 12px;
-    margin-right:20px;
+    flex:0 0 auto;
+    scroll-snap-align:start;
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel);
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:9px 16px;
     font-family:'Sora',sans-serif;
-    font-weight:600; font-size:14px;
+    font-weight:700; font-size:13px;
     color:var(--text-soft); cursor:pointer;
-    border-bottom:2px solid transparent;
-    transition:color 0.3s, border-color 0.3s;
+    white-space:nowrap;
+    transition:all 0.2s;
   }
+  .tab .tab-icon{ font-size:15px; line-height:1; }
+  .tab:hover{ color:var(--text); border-color:var(--brand-yellow); }
   .tab[aria-selected="true"]{
-    color:var(--text);
-    border-bottom-color:var(--brand-yellow);
+    background:var(--brand-yellow);
+    border-color:var(--brand-yellow);
+    color:#1A1A2E;
+    box-shadow:0 2px 8px rgba(255,203,5,0.35);
   }
-  .tab:hover{ color:var(--text); }
+
+  /* Edge fades hint that the strip scrolls further in that direction */
+  .tabs-wrap::before,
+  .tabs-wrap::after{
+    content:''; position:absolute; top:0; bottom:10px; width:28px;
+    pointer-events:none; z-index:2; opacity:0; transition:opacity 0.2s;
+  }
+  .tabs-wrap::before{
+    left:0; border-radius:14px 0 0 14px;
+    background:linear-gradient(to right, var(--bg), transparent);
+  }
+  .tabs-wrap::after{
+    right:0; border-radius:0 14px 14px 0;
+    background:linear-gradient(to left, var(--bg), transparent);
+  }
+  .tabs-wrap[data-scrolled="true"]::before{ opacity:1; }
+  .tabs-wrap[data-more="true"]::after{ opacity:1; }
+
   .hidden{ display:none !important; }
 
   /* ============================================================
@@ -448,7 +491,7 @@
     .panel{ padding:16px; }
     .net-grid{ grid-template-columns:1fr; }
     #checkerGrid.net-grid-2, #checkerGrid.net-grid-3{ grid-template-columns:1fr; }
-    .tabs .tab{ margin-right:12px; font-size:13px; padding:8px 2px 10px; }
+    .tab{ font-size:12.5px; padding:8px 13px; }
     .status-pill{ display:none; }
   }
 </style>
@@ -507,12 +550,14 @@
   <div id="orderBanner"></div>
 
   <!-- Tabs -->
-  <div class="tabs" role="tablist">
-    <button class="tab" data-tab="buy" role="tab" aria-selected="true">Buy Data</button>
-    <button class="tab" data-tab="verify" role="tab" aria-selected="false">Verify</button>
-    <button class="tab" data-tab="checker" role="tab" aria-selected="false">Checkers</button>
-    <button class="tab" data-tab="track" role="tab" aria-selected="false">Track</button>
-    <button class="tab" data-tab="tracker" role="tab" aria-selected="false">📡 Live</button>
+  <div class="tabs-wrap" id="tabsWrap">
+    <div class="tabs" role="tablist" id="tabsScroller">
+      <button class="tab" data-tab="buy" role="tab" aria-selected="true"><span class="tab-icon">📶</span>Buy Data</button>
+      <button class="tab" data-tab="verify" role="tab" aria-selected="false"><span class="tab-icon">🔍</span>Verify</button>
+      <button class="tab" data-tab="checker" role="tab" aria-selected="false"><span class="tab-icon">🎓</span>Checkers</button>
+      <button class="tab" data-tab="track" role="tab" aria-selected="false"><span class="tab-icon">📦</span>Track</button>
+      <button class="tab" data-tab="tracker" role="tab" aria-selected="false"><span class="tab-icon">📡</span>Live</button>
+    </div>
   </div>
 
   <!-- ============================================================
@@ -976,14 +1021,29 @@ function describeOrder(d){
 }
 
 // ============================================================
-// TABS
+// TABS — horizontal scroll bar with edge-fade "more tabs" hints
 // ============================================================
+const tabsWrap = document.getElementById('tabsWrap');
+const tabsScroller = document.getElementById('tabsScroller');
+
+function updateTabFades(){
+  const { scrollLeft, scrollWidth, clientWidth } = tabsScroller;
+  tabsWrap.dataset.scrolled = scrollLeft > 4 ? 'true' : 'false';
+  tabsWrap.dataset.more = (scrollLeft + clientWidth) < (scrollWidth - 4) ? 'true' : 'false';
+}
+tabsScroller.addEventListener('scroll', updateTabFades, { passive: true });
+window.addEventListener('resize', updateTabFades);
+updateTabFades();
+
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected','false'));
     tab.setAttribute('aria-selected','true');
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
     document.getElementById('tab-'+tab.dataset.tab).classList.remove('hidden');
+    // Bring the newly active tab fully into view — matters once there
+    // are enough tabs that some sit off-screen on smaller devices.
+    tab.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
   });
 });
 
