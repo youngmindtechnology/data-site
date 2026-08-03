@@ -44,9 +44,6 @@
     --info: #6FA0FF;
   }
 
-  /* ============================================================
-     BASE
-     ============================================================ */
   *{ box-sizing:border-box; margin:0; }
   body{
     background: var(--bg);
@@ -180,6 +177,38 @@
   .stat-card .value.bad{ color:var(--bad); }
   .stat-card .value.warn{ color:var(--warn); }
   .stat-card .value.info{ color:var(--info); }
+
+  /* Balance Card */
+  .balance-card{
+    background:var(--panel); border:2px solid var(--line);
+    border-radius:var(--radius); padding:20px 24px;
+    box-shadow:var(--shadow);
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:16px;
+    margin-bottom:24px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .balance-card .left{ display:flex; align-items:center; gap:16px; }
+  .balance-card .icon{
+    font-size:32px; width:56px; height:56px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:var(--panel-2);
+  }
+  .balance-card .label{ font-size:13px; color:var(--text-soft); }
+  .balance-card .amount{
+    font-family:'Sora',sans-serif; font-weight:800; font-size:32px;
+    color:var(--text);
+  }
+  .balance-card .amount.good{ color:var(--good); }
+  .balance-card .amount.bad{ color:var(--bad); }
+  .balance-card .amount.warn{ color:var(--warn); }
+  .balance-card .meta{ font-size:12px; color:var(--text-soft); margin-top:2px; }
+  .balance-card .tag{
+    padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600;
+  }
+  .balance-card .tag.good{ background:var(--good); color:#FFFFFF; }
+  .balance-card .tag.warn{ background:var(--warn); color:#FFFFFF; }
+  .balance-card .tag.bad{ background:var(--bad); color:#FFFFFF; }
 
   /* ============================================================
      TABLE
@@ -351,6 +380,8 @@
     .status-pill{ display:none; }
     .action-cell{ flex-direction:column; gap:4px; }
     .modal{ padding:24px 20px; }
+    .balance-card{ flex-direction:column; text-align:center; }
+    .balance-card .left{ flex-direction:column; }
   }
 </style>
 </head>
@@ -405,10 +436,18 @@
   <div class="stats-grid" id="stats"></div>
 
   <!-- DataMart Wallet Balance -->
-  <div class="stat-card" id="balanceCard" style="margin-bottom:24px;">
-    <div class="label">💳 DataMart Balance</div>
-    <div class="value info" id="balanceValue">Loading…</div>
-    <div class="sub" id="balanceUpdated" style="font-size:11px; color:var(--text-soft); margin-top:4px;"></div>
+  <div class="balance-card" id="balanceCard">
+    <div class="left">
+      <div class="icon">💳</div>
+      <div>
+        <div class="label">DataMart Wallet Balance</div>
+        <div class="amount" id="balanceValue">Loading…</div>
+        <div class="meta" id="balanceUpdated">Fetching balance…</div>
+      </div>
+    </div>
+    <div>
+      <span class="tag" id="balanceTag">Loading</span>
+    </div>
   </div>
 
   <!-- Orders Table -->
@@ -511,24 +550,56 @@ async function adminApi(path, opts = {}){
 }
 
 // ============================================================
-// DATAMART WALLET BALANCE
+// DATAMART WALLET BALANCE - FIXED
 // ============================================================
 async function loadBalance(){
   const el = document.getElementById('balanceValue');
   const updatedEl = document.getElementById('balanceUpdated');
+  const tagEl = document.getElementById('balanceTag');
+  
   try {
     const r = await adminApi('/admin/api/balance');
-    const { balance, currency, timestamp } = r.data;
-
-    el.textContent = `${currency || 'GH₵'} ${money(balance)}`;
-    el.classList.remove('bad', 'info');
-    el.classList.add(Number(balance) < 20 ? 'bad' : 'info');
-
-    updatedEl.textContent = timestamp ? 'Updated ' + formatDate(timestamp) : '';
+    
+    // The response structure: { status: 'success', data: { balance, currency, user, timestamp } }
+    const balance = r.data?.balance;
+    const currency = r.data?.currency || 'GH₵';
+    const timestamp = r.data?.timestamp;
+    
+    if (balance === undefined || balance === null) {
+      el.textContent = 'Error';
+      el.className = 'amount bad';
+      tagEl.textContent = '⚠️ Error';
+      tagEl.className = 'tag bad';
+      updatedEl.textContent = 'Could not fetch balance';
+      return;
+    }
+    
+    const balanceNum = Number(balance);
+    el.textContent = `${currency} ${balanceNum.toFixed(2)}`;
+    
+    // Set color based on balance
+    if (balanceNum > 50) {
+      el.className = 'amount good';
+      tagEl.textContent = '✅ Healthy';
+      tagEl.className = 'tag good';
+    } else if (balanceNum > 20) {
+      el.className = 'amount warn';
+      tagEl.textContent = '⚠️ Moderate';
+      tagEl.className = 'tag warn';
+    } else {
+      el.className = 'amount bad';
+      tagEl.textContent = '🔴 Low - Top Up';
+      tagEl.className = 'tag bad';
+    }
+    
+    updatedEl.textContent = timestamp ? 'Updated: ' + formatDate(timestamp) : '';
+    
   } catch (e) {
-    el.textContent = 'Error';
-    el.classList.add('bad');
-    updatedEl.textContent = '';
+    el.textContent = '❌ Error';
+    el.className = 'amount bad';
+    tagEl.textContent = '❌ Error';
+    tagEl.className = 'tag bad';
+    updatedEl.textContent = 'Failed to load balance';
     console.error('Balance load failed:', e.message);
   }
 }
@@ -592,7 +663,7 @@ async function loadOrders(){
 
   document.getElementById('stats').innerHTML = `
     <div class="stat-card">
-      <div class="label">Total Orders</div>
+      <div class="label">📦 Total Orders</div>
       <div class="value info">${counts.total}</div>
     </div>
     <div class="stat-card">
@@ -657,6 +728,7 @@ async function loadOrders(){
         await adminApi(`/admin/api/orders/${btn.dataset.ref}/retry`, { method: 'POST' });
         showToast('✅ Retry successful!', 'success');
         await loadOrders();
+        await loadBalance();
       } catch (e) {
         showToast('❌ Retry failed: ' + e.message, 'error');
         btn.disabled = false; 
@@ -710,20 +782,23 @@ async function enter(){
     document.getElementById('gate').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     if (window.refreshInterval) clearInterval(window.refreshInterval);
-    window.refreshInterval = setInterval(() => { loadOrders(); loadBalance(); }, 15000);
+    window.refreshInterval = setInterval(() => { 
+      loadOrders(); 
+      loadBalance(); 
+    }, 15000);
   } catch (e) {
     document.getElementById('gateError').textContent = '❌ Wrong key or server error.';
   }
 }
 
-document.getElementById('refreshBtn').addEventListener('click', () => { loadOrders(); loadBalance(); });
-
 document.getElementById('enterBtn').addEventListener('click', enter);
 document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') enter(); });
-document.getElementById('refreshBtn').addEventListener('click', loadOrders);
+document.getElementById('refreshBtn').addEventListener('click', () => { 
+  loadOrders(); 
+  loadBalance(); 
+});
 
 if (ADMIN_KEY) enter();
 </script>
-
 </body>
 </html>
