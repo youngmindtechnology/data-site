@@ -307,7 +307,27 @@
   }
   .badge.completed, .badge.fulfilled, .badge.delivered{ background:var(--good); color:#fff; }
   .badge.failed{ background:var(--bad); color:#fff; }
-  .badge.pending, .badge.processing{ background:var(--warn); color:#fff; }
+  .badge.pending, .badge.processing, .badge.waiting{ background:var(--warn); color:#fff; }
+
+  /* ============================================================
+     ON-HOLD / MANUAL VERIFICATION NOTE
+     ============================================================ */
+  .onhold-note{
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.35);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-top: 12px;
+  }
+  .onhold-note p{
+    font-size: 13px;
+    color: var(--text);
+    margin: 0 0 8px;
+    line-height: 1.5;
+  }
+  .onhold-note p:last-child{ margin-bottom: 0; }
+  .onhold-note b{ color: var(--warn); }
+  .onhold-note a{ color: var(--warn); font-weight:700; text-decoration:underline; }
 
   /* ============================================================
      TRACKER
@@ -643,6 +663,7 @@
         </div>
       </div>
 
+      <div class="hint" style="margin-bottom:10px;">A small processing fee applies at checkout — the exact amount will be shown on the payment prompt.</div>
       <button class="btn btn-primary" id="modalPayBtn">Pay now</button>
       <div class="result" id="modalFormResult"></div>
     </div>
@@ -814,8 +835,6 @@ let state = {
   selectedPkg: null,
   checkerProducts: [],
   selectedChecker: null,
-  feePercent: 3, // processing fee, added on top of the bundle price when a package is selected
-  passFeeToCustomer: true,
   trackType: 'data'
 };
 
@@ -829,21 +848,15 @@ let modalState = {
   reference: null,
 };
 
+// WhatsApp number used for the "contact support" link in the
+// on-hold note — kept in sync with the floating WhatsApp button.
+const SUPPORT_WA_NUMBER = '233533980571';
+
 // ============================================================
 // HELPERS
 // ============================================================
 function money(n){ return Number(n).toFixed(2); }
 function netLabel(n){ return { YELLO:'MTN', TELECEL:'Telecel', AT_PREMIUM:'AirtelTigo' }[n]||n; }
-
-// Adds the processing fee (state.feePercent, e.g. 3 = 3%) on top of a
-// base price. If the backend already sends a `payable` amount that
-// includes its own fee, that's used as-is instead of double-charging.
-function priceWithFee(basePrice){
-  return Number(basePrice) * (1 + (state.feePercent || 0) / 100);
-}
-function feeAmount(basePrice){
-  return Number(basePrice) * ((state.feePercent || 0) / 100);
-}
 
 // ------------------------------------------------------------
 // Ghana network prefix detection
@@ -934,6 +947,26 @@ function describeOrder(d){
     const date = new Date(d.createdAt||d.created_at);
     rows += `<div class="row"><span>Date</span><span>${date.toLocaleDateString()}</span></div>`;
   }
+
+  // Special case: DataMart put this order on hold for manual network
+  // verification (e.g. "beneficiary not allowed"). This is not a
+  // failure and no money is lost — show a clear, reassuring
+  // explanation instead of a bare "waiting" status.
+  const onHold = d.orderStatus === 'waiting'
+    && /stored for manual processing/i.test(d.apiResponse?.message || '');
+
+  if (onHold) {
+    rows += `
+      <div class="onhold-note">
+        <p>🕐 <b>On hold — this number isn't accepted yet</b></p>
+        <p>This number was temporarily rejected ("beneficiary not allowed"). This is <b>not a failed order and no money is lost</b>. We've added it to our next verification batch — once it clears, the data is delivered automatically. This can take a little time.</p>
+        <p><b>What you need to do:</b> Nothing — no need to re-order or re-pay. Just wait; it delivers once it's cleared. If you'd rather have a refund, <a href="https://wa.me/${SUPPORT_WA_NUMBER}" target="_blank" rel="noopener">contact support</a>. ⚠️</p>
+        <p>Note: taking the refund removes this number from the batch we re-submit, so it won't be delivered later.</p>
+      </div>
+    `;
+    return { cls:'warn', title:'🕐 On Hold — Verifying', body: rows };
+  }
+
   if (d.message || d.note) rows += `<p>${d.message||d.note}</p>`;
 
   if (done) return { cls:'ok', title:'✅ Done', body:rows };
@@ -977,15 +1010,18 @@ async function loadPackages(){
   } catch(e){ pkgSub.textContent = 'Error loading packages'; }
 }
 
+// Shows the plain bundle price only. The Paystack processing fee is
+// NOT included here — it's only added at checkout time (see the
+// purchase modal and /api/orders/charge/init on the backend), so
+// what the customer sees while browsing is the clean bundle price.
 function renderPackages(){
   const list = state.packages[state.network] || [];
-  pkgSub.textContent = list.length ? `${list.length} bundles · incl. ${state.feePercent}% processing fee` : 'No packages';
+  pkgSub.textContent = list.length ? `${list.length} bundles` : 'No packages';
   pkgGrid.innerHTML = '';
   list.forEach(pkg => {
-    const total = pkg.payable != null ? pkg.payable : priceWithFee(pkg.price);
     const b = document.createElement('button');
     b.className = 'pkg-btn';
-    b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(total)}</span>`;
+    b.innerHTML = `<span class="cap">${pkg.capacity} GB</span><span class="price">GH₵ ${money(pkg.price)}</span>`;
     b.addEventListener('click', () => openPurchaseModal(pkg));
     pkgGrid.appendChild(b);
   });
@@ -1036,28 +1072,13 @@ function openPurchaseModal(pkg){
     reference: null,
   };
 
-  // If the backend already returns a `payable` amount (its own price
-  // with fee baked in), trust that and just show a total. Otherwise
-  // compute and show a price + processing fee breakdown client-side.
-  if (pkg.payable != null) {
-    document.getElementById('modalPkgSummary').innerHTML =
-      `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.payable)}`;
-  } else {
-    const fee = feeAmount(pkg.price);
-    const total = priceWithFee(pkg.price);
-    document.getElementById('modalPkgSummary').innerHTML = `
-      <b>${netLabel(state.network)} ${pkg.capacity}GB</b>
-      <div class="row" style="display:flex;justify-content:space-between;margin-top:8px;">
-        <span>Bundle price</span><span>GH₵ ${money(pkg.price)}</span>
-      </div>
-      <div class="row" style="display:flex;justify-content:space-between;">
-        <span>Processing fee (${state.feePercent}%)</span><span>GH₵ ${money(fee)}</span>
-      </div>
-      <div class="row" style="display:flex;justify-content:space-between;font-weight:700;margin-top:4px;padding-top:6px;border-top:1px solid var(--line);">
-        <span>Total to pay</span><span>GH₵ ${money(total)}</span>
-      </div>
-    `;
-  }
+  // Show only the plain bundle price here too — no fee breakdown.
+  // The actual amount charged (bundle price + Paystack fee) is
+  // computed server-side in /api/orders/charge/init and shown to
+  // the customer on the payment prompt itself.
+  document.getElementById('modalPkgSummary').innerHTML =
+    `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.price)}`;
+
   document.getElementById('modalRecipientPhone').value = '';
   document.getElementById('modalMomoPhone').value = '';
   document.getElementById('paySameYes').dataset.active = 'true';
@@ -1329,6 +1350,9 @@ async function loadCheckerProducts(){
   } catch(e){ checkerSub.textContent = 'Error loading checkers'; }
 }
 
+// Shows the plain checker price only — no processing fee added.
+// The fee is applied server-side (see /api/orders/init) at the
+// moment the order is actually created and sent to Paystack.
 function renderCheckerProducts(){
   checkerSub.textContent = 'Select a checker type';
   checkerGrid.innerHTML = '';
@@ -1346,7 +1370,7 @@ function renderCheckerProducts(){
         b.dataset.active='true';
         state.selectedChecker = p;
         checkerBtn.disabled = false;
-        checkerLabel.textContent = `Pay GH₵ ${money(p.payable||p.price)}`;
+        checkerLabel.textContent = `Pay GH₵ ${money(p.price)}`;
       });
     }
     checkerGrid.appendChild(b);
