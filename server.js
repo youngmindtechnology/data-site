@@ -56,10 +56,14 @@ function addPaystackFee(netAmount) {
   return Math.round(gross * 100) / 100;
 }
 
+// Replace this section in server.js
 const PRICE_OVERRIDES = {
-  'YELLO:1': 5.00
+  'YELLO:1': 5.00,
+  'YELLO:6': 25.50,
+  'YELLO:20': 100.00,
+  'YELLO:30': 120.00,
+  'YELLO:50': 193.00
 };
-
 function basePriceFor(network, capacity, cost) {
   const key = `${network}:${capacity}`;
   if (Object.prototype.hasOwnProperty.call(PRICE_OVERRIDES, key)) {
@@ -141,6 +145,9 @@ app.get('/api/packages', async (req, res) => {
   } catch (err) { relay(res, err); }
 });
 
+// Add this with your other constants
+const CHECKER_PRICE_OVERRIDE = 19.00;
+
 app.get('/api/checkers/products', async (req, res) => {
   try {
     const r = await datamart.getCheckerProducts();
@@ -148,8 +155,8 @@ app.get('/api/checkers/products', async (req, res) => {
       name: p.name,
       description: p.description,
       inStock: p.inStock,
-      price: toRetail(p.price),
-      payable: addPaystackFee(toRetail(p.price)),
+      price: CHECKER_PRICE_OVERRIDE,  // 19.00 GHS
+      payable: addPaystackFee(CHECKER_PRICE_OVERRIDE),
     }));
     res.json({ status: 'success', data: out });
   } catch (err) { relay(res, err); }
@@ -299,41 +306,91 @@ app.post('/api/orders/init', async (req, res) => {
    pays right there via a USSD/approval prompt or OTP, no redirect.
    ============================================================ */
 
+// Replace the /api/orders/charge/init route in server.js
 app.post('/api/orders/charge/init', async (req, res) => {
   try {
-    const { type, network, capacity, recipientPhone, momoPhone, momoNetwork } = req.body;
+    const { type, network, capacity, recipientPhone, momoPhone, momoNetwork, checkerType, skipSms } = req.body;
 
-    if (type !== 'data') {
-      return res.status(400).json({ status: 'error', message: 'This payment flow currently supports data bundles only.' });
-    }
-    if (!isValidPhone(recipientPhone)) {
-      return res.status(400).json({ status: 'error', message: 'Enter a valid beneficiary number, e.g. 0551234567.' });
-    }
-    if (!isValidPhone(momoPhone)) {
-      return res.status(400).json({ status: 'error', message: 'Enter a valid Mobile Money number.' });
-    }
-    if (!VALID_NETWORKS.includes(momoNetwork)) {
-      return res.status(400).json({ status: 'error', message: 'Select the Mobile Money network to pay with.' });
+    // Allow both data and checker types
+    if (type !== 'data' && type !== 'checker') {
+      return res.status(400).json({ status: 'error', message: 'This payment flow supports data bundles and result checkers only.' });
     }
 
-    const pkgRes = await datamart.getPackages();
-    const list = (pkgRes.data && pkgRes.data[network]) || [];
-    const pkg = list.find((p) => String(p.capacity) === String(capacity));
-    if (!pkg) return res.status(400).json({ status: 'error', message: 'That bundle is not available right now.' });
+    // Validation for data bundles
+    if (type === 'data') {
+      if (!isValidPhone(recipientPhone)) {
+        return res.status(400).json({ status: 'error', message: 'Enter a valid beneficiary number, e.g. 0551234567.' });
+      }
+      if (!isValidPhone(momoPhone)) {
+        return res.status(400).json({ status: 'error', message: 'Enter a valid Mobile Money number.' });
+      }
+      if (!VALID_NETWORKS.includes(momoNetwork)) {
+        return res.status(400).json({ status: 'error', message: 'Select the Mobile Money network to pay with.' });
+      }
+    }
 
-    const order = {
-      reference: newReference(),
-      type: 'data',
-      status: 'pending',
-      network,
-      capacity: pkg.capacity,
-      phoneNumber: recipientPhone,
-      momoPhone,
-      momoNetwork,
-      email: `${momoPhone}@paystack.com`,
-      amount: chargePriceFor(network, pkg.capacity, pkg.price),
-      createdAt: new Date().toISOString(),
-    };
+    // Validation for checkers
+    if (type === 'checker') {
+      if (!isValidPhone(recipientPhone)) {
+        return res.status(400).json({ status: 'error', message: 'Enter a valid phone number for the checker delivery.' });
+      }
+      if (!isValidPhone(momoPhone)) {
+        return res.status(400).json({ status: 'error', message: 'Enter a valid Mobile Money number.' });
+      }
+      if (!VALID_NETWORKS.includes(momoNetwork)) {
+        return res.status(400).json({ status: 'error', message: 'Select the Mobile Money network to pay with.' });
+      }
+    }
+
+    let order;
+    let amount;
+
+    if (type === 'data') {
+      const pkgRes = await datamart.getPackages();
+      const list = (pkgRes.data && pkgRes.data[network]) || [];
+      const pkg = list.find((p) => String(p.capacity) === String(capacity));
+      if (!pkg) return res.status(400).json({ status: 'error', message: 'That bundle is not available right now.' });
+      
+      amount = chargePriceFor(network, pkg.capacity, pkg.price);
+      
+      order = {
+        reference: newReference(),
+        type: 'data',
+        status: 'pending',
+        network,
+        capacity: pkg.capacity,
+        phoneNumber: recipientPhone,
+        momoPhone,
+        momoNetwork,
+        email: `${momoPhone}@paystack.com`,
+        amount: amount,
+        createdAt: new Date().toISOString(),
+      };
+    } else if (type === 'checker') {
+      const prodRes = await datamart.getCheckerProducts();
+      const prod = prodRes.data.find((p) => p.name === checkerType);
+      if (!prod) return res.status(400).json({ status: 'error', message: 'That checker type is not available.' });
+      if (!prod.inStock) return res.status(400).json({ status: 'error', message: `${checkerType} checkers are out of stock right now.` });
+      
+      amount = addPaystackFee(toRetail(prod.price));
+      
+      order = {
+        reference: newReference(),
+        type: 'checker',
+        status: 'pending',
+        checkerType,
+        phoneNumber: recipientPhone,
+        momoPhone,
+        momoNetwork,
+        email: `${momoPhone}@paystack.com`,
+        amount: amount,
+        skipSms: !!skipSms,
+        createdAt: new Date().toISOString(),
+      };
+    } else {
+      return res.status(400).json({ status: 'error', message: 'Unknown order type.' });
+    }
+
     await orders.save(order);
 
     let chargeRes;

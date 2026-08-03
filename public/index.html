@@ -619,8 +619,8 @@
         Show PIN here instead of SMS
       </label>
       <button class="btn btn-primary" id="checkerBtn" disabled>
-        <span id="checkerBtnLabel">Select a checker</span>
-      </button>
+  <span id="checkerBtnLabel">Select a checker</span>
+</button>
       <div class="result" id="checkerResult"></div>
     </div>
   </section>
@@ -679,8 +679,9 @@
       <div class="modal-pkg-summary" id="modalPkgSummary"></div>
 
       <div class="field">
-        <label>Beneficiary number (gets the data)</label>
+        <label id="recipientLabel">Beneficiary number (gets the data)</label>
         <input type="tel" id="modalRecipientPhone" placeholder="0551234567" maxlength="10">
+        <div class="hint" id="recipientHint"></div>
         <div class="net-warning" id="modalPhoneNetWarning">⚠️ <span id="modalPhoneNetWarningText"></span></div>
       </div>
 
@@ -713,17 +714,17 @@
       <div class="result" id="modalFormResult"></div>
     </div>
 
-    <!-- Step 2a: pay_offline — customer approves a USSD/PIN prompt -->
+    <!-- Step 2a: pay_offline -->
     <div id="modalStepPayOffline" class="hidden">
       <div class="modal-title">Approve payment on your phone</div>
-      <p class="panel-sub" id="payOfflineText" style="margin-bottom:8px;">A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.</p>
-      <p class="hint" id="payOfflineUssdHint" style="margin-bottom:16px;"></p>
+      <p class="panel-sub" id="payOfflineText">A prompt was sent to your phone. Enter your Mobile Money PIN to approve the payment.</p>
+      <p class="hint" id="payOfflineUssdHint"></p>
       <button class="btn btn-primary" id="ivePaidBtn">I've completed payment</button>
       <button class="btn btn-secondary" id="offlineBackBtn" style="margin-top:8px;">Back</button>
       <div class="result" id="modalOfflineResult"></div>
     </div>
 
-    <!-- Step 2b: send_otp — customer's network requires an OTP -->
+    <!-- Step 2b: send_otp -->
     <div id="modalStepOtp" class="hidden">
       <div class="modal-title">Enter verification code</div>
       <p class="panel-sub">Your network sent a verification code to confirm this payment.</p>
@@ -743,7 +744,6 @@
     </div>
   </div>
 </div>
-
 <!-- ============================================================
      FLOATING WHATSAPP BUTTON (draggable, click opens chat)
      Replace WHATSAPP_NUMBER below with your number in international
@@ -1121,35 +1121,62 @@ function showModalStep(id){
   document.getElementById(id).classList.remove('hidden');
 }
 
-function openPurchaseModal(pkg){
+function openPurchaseModal(pkg, prefillPhone) {
+  const isChecker = pkg.isChecker || false;
+  
   modalState = {
     pkg,
-    network: state.network,
-    recipientPhone: '',
+    network: isChecker ? 'YELLO' : state.network,
+    recipientPhone: prefillPhone || '',
     paySame: true,
     momoPhone: '',
-    momoNetwork: state.network,
+    momoNetwork: isChecker ? 'YELLO' : state.network,
     reference: null,
+    isChecker: isChecker,
+    checkerType: pkg.checkerType || null,
+    skipSms: pkg.skipSms || false,
   };
 
-  // Show only the plain bundle price here too — no fee breakdown.
-  // The actual amount charged (bundle price + Paystack fee) is
-  // computed server-side in /api/orders/charge/init and shown to
-  // the customer on the payment prompt itself.
-  document.getElementById('modalPkgSummary').innerHTML =
-    `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.price)}`;
+  // Update modal title and summary
+  if (isChecker) {
+    document.getElementById('modalPkgSummary').innerHTML = 
+      `<b>🎓 ${pkg.checkerType} Checker</b> — GH₵ ${money(pkg.price)}`;
+    document.querySelector('.modal-title').textContent = 'Complete your checker order';
+    
+    // ✅ FIX: Update the label for checkers
+    document.querySelector('#modalStepForm .field label').textContent = 'Phone number for checker delivery';
+    document.querySelector('#modalStepForm .field .hint').textContent = 'The checker PIN will be sent to this number via SMS.';
+  } else {
+    document.getElementById('modalPkgSummary').innerHTML = 
+      `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.price)}`;
+    document.querySelector('.modal-title').textContent = 'Complete your order';
+    
+    // Reset label for data bundles
+    document.querySelector('#modalStepForm .field label').textContent = 'Beneficiary number (gets the data)';
+    document.querySelector('#modalStepForm .field .hint').textContent = '';
+  }
 
-  document.getElementById('modalRecipientPhone').value = '';
+  // Pre-fill recipient phone if provided
+  if (prefillPhone) {
+    document.getElementById('modalRecipientPhone').value = prefillPhone;
+  } else {
+    document.getElementById('modalRecipientPhone').value = '';
+  }
+  
   document.getElementById('modalMomoPhone').value = '';
   document.getElementById('paySameYes').dataset.active = 'true';
   document.getElementById('paySameNo').dataset.active = 'false';
   momoFields.classList.add('hidden');
-  document.querySelectorAll('#momoNetGrid .net-btn').forEach(b => b.dataset.active = (b.dataset.net === state.network) ? 'true' : 'false');
+  document.querySelectorAll('#momoNetGrid .net-btn').forEach(b => 
+    b.dataset.active = (b.dataset.net === modalState.momoNetwork) ? 'true' : 'false'
+  );
+  
   clearResult(document.getElementById('modalFormResult'));
   clearResult(document.getElementById('modalOfflineResult'));
   clearResult(document.getElementById('modalOtpResult'));
-  recipientNetWarning.update();
-  momoNetWarning.update();
+  
+  if (recipientNetWarning) recipientNetWarning.update();
+  if (momoNetWarning) momoNetWarning.update();
 
   showModalStep('modalStepForm');
   purchaseModal.classList.remove('hidden');
@@ -1195,30 +1222,28 @@ modalPayBtn.addEventListener('click', async () => {
     return setResult(formResult, 'err', '<h3>Invalid number</h3><p>Enter the beneficiary number as 10 digits starting with 0.</p>');
   }
 
-  // Block the purchase if the beneficiary number's detected network
-  // doesn't match the bundle's network (e.g. buying an MTN bundle
-  // for a Telecel number).
-  const recipientNetwork = detectNetworkFromPhone(recipientPhone);
-  if (recipientNetwork && recipientNetwork !== modalState.network) {
-    return setResult(formResult, 'err', `<h3>Network mismatch</h3><p>${recipientPhone} looks like a <b>${netLabel(recipientNetwork)}</b> number, but this bundle is for <b>${netLabel(modalState.network)}</b>. Close this and pick a ${netLabel(recipientNetwork)} bundle instead, or double-check the number.</p>`);
+  // For data bundles: check network mismatch
+  if (!modalState.isChecker) {
+    const recipientNetwork = detectNetworkFromPhone(recipientPhone);
+    if (recipientNetwork && recipientNetwork !== modalState.network) {
+      return setResult(formResult, 'err', `<h3>Network mismatch</h3><p>${recipientPhone} looks like a <b>${netLabel(recipientNetwork)}</b> number, but this bundle is for <b>${netLabel(modalState.network)}</b>. Close this and pick a ${netLabel(recipientNetwork)} bundle instead, or double-check the number.</p>`);
+    }
   }
 
   const paySame = document.getElementById('paySameYes').dataset.active === 'true';
   let momoPhone, momoNetwork;
+  
   if (paySame) {
     momoPhone = recipientPhone;
-    momoNetwork = modalState.network; // assume same network as the data purchase
+    momoNetwork = modalState.isChecker ? 'YELLO' : modalState.network;
   } else {
     momoPhone = document.getElementById('modalMomoPhone').value.trim();
     if (!/^0\d{9}$/.test(momoPhone)) {
       return setResult(formResult, 'err', '<h3>Invalid Mobile Money number</h3><p>Enter 10 digits starting with 0.</p>');
     }
     const activeNetBtn = document.querySelector('#momoNetGrid .net-btn[data-active="true"]');
-    momoNetwork = activeNetBtn ? activeNetBtn.dataset.net : modalState.network;
+    momoNetwork = activeNetBtn ? activeNetBtn.dataset.net : (modalState.isChecker ? 'YELLO' : modalState.network);
 
-    // Block if the MoMo number's detected network doesn't match the
-    // MoMo network the customer selected — this is what actually
-    // gets charged, so a mismatch here would fail at the network.
     const momoDetected = detectNetworkFromPhone(momoPhone);
     if (momoDetected && momoDetected !== momoNetwork) {
       return setResult(formResult, 'err', `<h3>Network mismatch</h3><p>${momoPhone} looks like a <b>${netLabel(momoDetected)}</b> number, but you selected <b>${netLabel(momoNetwork)}</b> for Mobile Money. Please correct the network or the number.</p>`);
@@ -1234,16 +1259,24 @@ modalPayBtn.addEventListener('click', async () => {
   modalPayBtn.innerHTML = '<span class="spinner"></span> Starting…';
 
   try {
+    const body = {
+      type: modalState.isChecker ? 'checker' : 'data',
+      recipientPhone,
+      momoPhone,
+      momoNetwork,
+    };
+    
+    if (modalState.isChecker) {
+      body.checkerType = modalState.checkerType;
+      body.skipSms = modalState.skipSms;
+    } else {
+      body.network = modalState.network;
+      body.capacity = modalState.pkg.capacity;
+    }
+    
     const r = await api('/api/orders/charge/init', {
       method: 'POST',
-      body: {
-        type: 'data',
-        network: modalState.network,
-        capacity: modalState.pkg.capacity,
-        recipientPhone,
-        momoPhone,
-        momoNetwork,
-      }
+      body: body
     });
     modalState.reference = r.data.reference;
     handleChargeResponse(r.data);
@@ -1254,6 +1287,7 @@ modalPayBtn.addEventListener('click', async () => {
     modalPayBtn.textContent = orig;
   }
 });
+
 
 function ussdHintFor(network){
   if (network === 'YELLO') {
@@ -1437,34 +1471,27 @@ function renderCheckerProducts(){
   });
 }
 
+// Replace the checkerBtn click handler in your HTML script
 checkerBtn.addEventListener('click', async () => {
   const phone = document.getElementById('checkerPhone').value.trim();
   const skip = document.getElementById('skipSms').checked;
   clearResult(checkerResult);
-  if (!/^0\d{9}$/.test(phone)) return setResult(checkerResult,'err','<h3>Invalid phone</h3>');
+  
+  if (!/^0\d{9}$/.test(phone)) {
+    return setResult(checkerResult, 'err', '<h3>Invalid phone</h3><p>Enter 10 digits starting with 0.</p>');
+  }
   if (!state.selectedChecker) return;
 
-  const orig = checkerLabel.textContent;
-  checkerBtn.disabled = true;
-  checkerLabel.innerHTML = '<span class="spinner"></span> Starting…';
-
-  try {
-    const r = await api('/api/orders/init', {
-      method:'POST',
-      body:{ 
-        type:'checker', 
-        checkerType:state.selectedChecker.name, 
-        phoneNumber:phone,
-        email: phone + '@paystack.com',  // Use phone as email for Paystack
-        skipSms:skip 
-      }
-    });
-    window.location.href = r.data.authorizationUrl;
-  } catch(e) {
-    setResult(checkerResult,'err',`<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
-    checkerBtn.disabled = false;
-    checkerLabel.textContent = orig;
-  }
+  // Open the modal with checker data
+  const checkerPkg = {
+    capacity: state.selectedChecker.name,
+    price: state.selectedChecker.price,
+    isChecker: true,
+    checkerType: state.selectedChecker.name,
+    skipSms: skip
+  };
+  
+  openPurchaseModal(checkerPkg, phone);
 });
 
 // ============================================================
