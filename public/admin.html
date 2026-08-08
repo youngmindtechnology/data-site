@@ -624,6 +624,15 @@ function getStatusLabel(status){
   return map[status] || status;
 }
 
+// Statuses for which the fulfil/retry button should appear.
+// Deliberately excludes 'pending' — fulfillOrder() does not re-verify
+// payment with Paystack, it just delivers. Showing this button on a
+// 'pending' order (payment not yet confirmed) risks giving away a
+// bundle/checker for free. Only 'paid' (payment confirmed, delivery
+// never ran or crashed) and 'fulfillment_failed' (delivery attempted
+// and failed) are safe to retry from here.
+const FULFILLABLE_STATUSES = ['paid', 'fulfillment_failed'];
+
 // ============================================================
 // DELETE ORDER
 // ============================================================
@@ -709,8 +718,10 @@ async function loadOrders(){
       <td class="mono">${formatDate(o.createdAt)}</td>
       <td>
         <div class="action-cell">
-          ${o.status === 'fulfillment_failed' ? 
-            `<button class="btn btn-retry btn-sm retry" data-ref="${o.reference}">⟳ Retry</button>` : 
+          ${FULFILLABLE_STATUSES.includes(o.status) ? 
+            `<button class="btn btn-retry btn-sm retry" data-ref="${o.reference}">
+              ${o.status === 'fulfillment_failed' ? '⟳ Retry' : '✅ Fulfil'}
+             </button>` : 
             ''
           }
           <button class="btn btn-delete btn-sm delete-btn" data-ref="${o.reference}">🗑️</button>
@@ -719,20 +730,21 @@ async function loadOrders(){
     </tr>
   `).join('');
 
-  // Retry buttons
+  // Retry / Fulfil buttons
   document.querySelectorAll('.retry').forEach(btn => {
     btn.addEventListener('click', async () => {
+      const originalLabel = btn.textContent;
       btn.disabled = true; 
-      btn.textContent = '⟳ Retrying…';
+      btn.textContent = '⟳ Working…';
       try {
         await adminApi(`/admin/api/orders/${btn.dataset.ref}/retry`, { method: 'POST' });
-        showToast('✅ Retry successful!', 'success');
+        showToast('✅ Order fulfilled successfully!', 'success');
         await loadOrders();
         await loadBalance();
       } catch (e) {
-        showToast('❌ Retry failed: ' + e.message, 'error');
+        showToast('❌ Failed: ' + e.message, 'error');
         btn.disabled = false; 
-        btn.textContent = '⟳ Retry';
+        btn.textContent = originalLabel;
       }
     });
   });
