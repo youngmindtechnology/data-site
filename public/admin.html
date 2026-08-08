@@ -624,14 +624,16 @@ function getStatusLabel(status){
   return map[status] || status;
 }
 
-// Statuses for which the fulfil/retry button should appear.
-// Deliberately excludes 'pending' — fulfillOrder() does not re-verify
-// payment with Paystack, it just delivers. Showing this button on a
-// 'pending' order (payment not yet confirmed) risks giving away a
-// bundle/checker for free. Only 'paid' (payment confirmed, delivery
-// never ran or crashed) and 'fulfillment_failed' (delivery attempted
-// and failed) are safe to retry from here.
-const FULFILLABLE_STATUSES = ['paid', 'fulfillment_failed'];
+// 'fulfillment_failed' = payment confirmed, DataMart delivery itself
+// errored (e.g. insufficient wallet balance) — safe to auto-retry.
+//
+// 'payment_failed' = the callback/webhook marked it this way, but that
+// can be wrong (amount-mismatch or a race between webhook/callback —
+// see server.js /api/payment/callback). If you've checked Paystack and
+// confirmed the money actually came in, you can force a retry on these
+// too — it asks for confirmation first since it bypasses that check.
+const FULFILLABLE_STATUSES = ['fulfillment_failed', 'payment_failed'];
+const NEEDS_CONFIRM_STATUSES = ['payment_failed'];
 
 // ============================================================
 // DELETE ORDER
@@ -719,8 +721,8 @@ async function loadOrders(){
       <td>
         <div class="action-cell">
           ${FULFILLABLE_STATUSES.includes(o.status) ? 
-            `<button class="btn btn-retry btn-sm retry" data-ref="${o.reference}">
-              ${o.status === 'fulfillment_failed' ? '⟳ Retry' : '✅ Fulfil'}
+            `<button class="btn btn-retry btn-sm retry" data-ref="${o.reference}" data-status="${o.status}">
+              ${o.status === 'payment_failed' ? '⚠️ Force Retry' : '⟳ Retry'}
              </button>` : 
             ''
           }
@@ -733,16 +735,22 @@ async function loadOrders(){
   // Retry / Fulfil buttons
   document.querySelectorAll('.retry').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if (NEEDS_CONFIRM_STATUSES.includes(btn.dataset.status)) {
+        const ok = window.confirm(
+          `This order is marked "Payment Failed."\n\nOnly proceed if you've checked Paystack and confirmed the payment for ${btn.dataset.ref} actually went through.\n\nRetry fulfillment anyway?`
+        );
+        if (!ok) return;
+      }
       const originalLabel = btn.textContent;
       btn.disabled = true; 
-      btn.textContent = '⟳ Working…';
+      btn.textContent = '⟳ Retrying…';
       try {
         await adminApi(`/admin/api/orders/${btn.dataset.ref}/retry`, { method: 'POST' });
-        showToast('✅ Order fulfilled successfully!', 'success');
+        showToast('✅ Retry successful!', 'success');
         await loadOrders();
         await loadBalance();
       } catch (e) {
-        showToast('❌ Failed: ' + e.message, 'error');
+        showToast('❌ Retry failed: ' + e.message, 'error');
         btn.disabled = false; 
         btn.textContent = originalLabel;
       }
