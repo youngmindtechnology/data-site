@@ -251,6 +251,7 @@ app.post('/api/orders/init', async (req, res) => {
         phoneNumber,
         email,
         amount: chargePriceFor(network, pkg.capacity, pkg.price),
+         costPrice: Number(pkg.price), 
         createdAt: new Date().toISOString(),
       };
     } else if (type === 'checker') {
@@ -271,6 +272,7 @@ app.post('/api/orders/init', async (req, res) => {
         email,
         skipSms: !!skipSms,
         amount: addPaystackFee(CHECKER_PRICE_OVERRIDE),
+        costPrice: Number(prod.price),
         createdAt: new Date().toISOString(),
       };
     } else {
@@ -363,6 +365,7 @@ app.post('/api/orders/charge/init', async (req, res) => {
         capacity: pkg.capacity,
         phoneNumber: recipientPhone,
         momoPhone,
+        costPrice: Number(pkg.price),
         momoNetwork,
         email: `${momoPhone}@paystack.com`,
         amount: amount,
@@ -385,6 +388,7 @@ app.post('/api/orders/charge/init', async (req, res) => {
         momoPhone,
         momoNetwork,
         email: `${momoPhone}@paystack.com`,
+        costPrice: Number(prod.price),
         amount: amount,
         skipSms: !!skipSms,
         createdAt: new Date().toISOString(),
@@ -439,6 +443,75 @@ app.post('/api/orders/charge/init', async (req, res) => {
       status: 'error',
       message: (chargeRes.data && chargeRes.data.gateway_response) || 'Payment could not be started. Please try again.',
     });
+  } catch (err) { relay(res, err); }
+});
+
+app.post('/admin/api/backfill-cost', requireAdmin, async (req, res) => {
+  try {
+    const [pkgRes, checkerRes] = await Promise.all([
+      datamart.getPackages(),
+      datamart.getCheckerProducts(),
+    ]);
+
+    // network -> capacity -> current DataMart cost
+    const packageCostMap = {};
+    Object.keys(pkgRes.data || {}).forEach((net) => {
+      packageCostMap[net] = {};
+      (pkgRes.data[net] || []).forEach((p) => {
+        packageCostMap[net][String(p.capacity)] = Number(p.price);
+      });
+    });
+
+    // checkerType -> current DataMart cost
+    const checkerCostMap = {};
+    (checkerRes.data || []).forEach((p) => { checkerCostMap[p.name] = Number(p.price); });
+
+    const all = await orders.list();
+    let updated = 0, estimated = 0, skipped = 0, alreadyHadCost = 0;
+
+    for (const raw of all) {
+      if (raw.status !== 'fulfilled') continue;
+      if (typeof raw.costPrice === 'number' && !isNaN(raw.costPrice)) { alreadyHadCost++; continue; }
+
+      const order = await orders.get(raw.reference);
+      if (!order) { skipped++; continue; }
+
+      if (order.type === 'data') {
+        const key = `${order.network}:${order.capacity}`;
+        const overridden = Object.prototype.hasOwnProperty.call(PRICE_OVERRIDES, key);
+
+        if (!overridden) {
+          // Exact — invert the markup formula from what was actually charged.
+          const netBeforeFee = PASS_PAYSTACK_FEE_TO_CUSTOMER
+            ? Number(order.amount) * (1 - PAYSTACK_FEE_PERCENT / 100)
+            : Number(order.amount);
+          const cost = (netBeforeFee - FLAT_MARKUP_GHS) / (1 + MARKUP_PERCENT / 100);
+          order.costPrice = Math.round(cost * 100) / 100;
+          order.costEstimated = false;
+          updated++;
+        } else {
+          // Overridden retail price isn't derived from cost — estimate with today's price.
+          const liveCost = packageCostMap[order.network]?.[String(order.capacity)];
+          if (liveCost === undefined) { skipped++; continue; }
+          order.costPrice = liveCost;
+          order.costEstimated = true;
+          estimated++;
+        }
+      } else if (order.type === 'checker') {
+        // Checkers are always sold at a fixed retail, unrelated to cost at order time.
+        const liveCost = checkerCostMap[order.checkerType];
+        if (liveCost === undefined) { skipped++; continue; }
+        order.costPrice = liveCost;
+        order.costEstimated = true;
+        estimated++;
+      } else {
+        skipped++; continue;
+      }
+
+      await orders.save(order);
+    }
+
+    res.json({ status: 'success', data: { updated, estimated, alreadyHadCost, skipped, total: all.length } });
   } catch (err) { relay(res, err); }
 });
 

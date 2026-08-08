@@ -428,6 +428,7 @@
       <p class="sub">Real-time overview of all orders placed through your store.</p>
     </div>
     <div class="header-actions">
+      <button class="btn btn-refresh" id="profitBtn">📈 Profit</button>
       <button class="btn btn-refresh" id="refreshBtn">🔄 Refresh</button>
     </div>
   </div>
@@ -451,7 +452,7 @@
   </div>
 
   <!-- Orders Table -->
-  <div class="table-wrapper">
+  <div class="table-wrapper" id="ordersPanel">
     <div class="table-scroll">
       <table>
         <thead>
@@ -467,6 +468,36 @@
         </thead>
         <tbody id="rows"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Profit Panel -->
+  <div class="hidden" id="profitPanel">
+    <div class="page-header" style="margin-bottom:12px;">
+      <div></div>
+      <div class="header-actions">
+        <button class="btn btn-refresh" id="backfillBtn">🔄 Backfill Cost Data</button>
+      </div>
+    </div>
+    <div class="stats-grid" id="profitStats"></div>
+    <p class="sub" id="profitNote" style="margin-bottom:16px;"></p>
+    <div class="table-wrapper">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Type</th>
+              <th>Paid</th>
+              <th>Paystack Fee</th>
+              <th>DataMart Cost</th>
+              <th>Profit</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="profitRows"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -606,6 +637,127 @@ async function loadBalance(){
 
 function money(n){ const num = Number(n); return isNaN(num) ? n : num.toFixed(2); }
 
+// ============================================================
+// PROFIT TRACKING
+// ============================================================
+let paystackFeePercent = 1.95; // overwritten by /api/config below
+let lastOrdersList = [];
+let profitViewActive = false;
+
+async function loadConfig(){
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    if (data?.data?.paystackFeePercent !== undefined) {
+      paystackFeePercent = Number(data.data.paystackFeePercent);
+    }
+  } catch (e) {
+    console.error('Could not load /api/config, using default fee %', e.message);
+  }
+}
+
+// Paystack takes its fee out of what the customer paid regardless of
+// whether that fee was already baked into the price (order.amount is
+// always the gross amount charged to the customer's card/MoMo).
+function netAfterPaystackFee(gross){
+  return Number(gross) * (1 - paystackFeePercent / 100);
+}
+
+function renderProfit(list){
+  const fulfilled = list.filter(o => o.status === 'fulfilled');
+  const tracked = fulfilled.filter(o => typeof o.costPrice === 'number' && !isNaN(o.costPrice));
+  const untracked = fulfilled.filter(o => !(typeof o.costPrice === 'number' && !isNaN(o.costPrice)));
+  const estimatedCount = tracked.filter(o => o.costEstimated).length;
+
+  let totalRevenue = 0, totalFees = 0, totalCost = 0, totalProfit = 0;
+  const rows = tracked.map(o => {
+    const gross = Number(o.amount || 0);
+    const net = netAfterPaystackFee(gross);
+    const fee = gross - net;
+    const cost = Number(o.costPrice);
+    const profit = net - cost;
+    totalRevenue += gross; totalFees += fee; totalCost += cost; totalProfit += profit;
+    return { o, gross, fee, cost, profit };
+  });
+
+  const untrackedRevenue = untracked.reduce((s, o) => s + Number(o.amount || 0), 0);
+  const margin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
+
+  document.getElementById('profitStats').innerHTML = `
+    <div class="stat-card">
+      <div class="label">💰 Net Profit</div>
+      <div class="value good">GH₵ ${money(totalProfit)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">📊 Margin</div>
+      <div class="value info">${margin.toFixed(1)}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🧾 Tracked Orders</div>
+      <div class="value">${tracked.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">💳 Paystack Fees Paid</div>
+      <div class="value warn">GH₵ ${money(totalFees)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">📦 DataMart Cost</div>
+      <div class="value">GH₵ ${money(totalCost)}</div>
+    </div>
+  `;
+
+  const notes = [];
+  if (estimatedCount) notes.push(`${estimatedCount} order(s) marked "~" use today's DataMart price as an estimate, since their original cost wasn't recorded.`);
+  if (untracked.length) notes.push(`${untracked.length} fulfilled order(s) worth GH₵${money(untrackedRevenue)} have no cost data at all — click "Backfill Cost Data" to fill these in.`);
+  document.getElementById('profitNote').textContent = notes.length ? notes.join(' ') : 'All fulfilled orders have cost data on file.';
+
+  if (rows.length === 0) {
+    document.getElementById('profitRows').innerHTML = `
+      <tr><td colspan="7"><div class="empty-state"><div class="icon">📈</div><h3>No tracked profit yet</h3><p>Click "Backfill Cost Data" to calculate profit for existing orders.</p></div></td></tr>
+    `;
+    return;
+  }
+
+  document.getElementById('profitRows').innerHTML = rows
+    .sort((a, b) => new Date(b.o.createdAt) - new Date(a.o.createdAt))
+    .map(({ o, gross, fee, cost, profit }) => `
+      <tr>
+        <td class="mono">${o.reference}</td>
+        <td>${o.type === 'data' ? (o.network || '') + ' ' + (o.capacity || '') + 'GB' : o.checkerType}</td>
+        <td class="mono">GH₵ ${money(gross)}</td>
+        <td class="mono">GH₵ ${money(fee)}</td>
+        <td class="mono" title="${o.costEstimated ? "Estimated from today's DataMart price" : 'Exact, from order records'}">${o.costEstimated ? '~' : ''}GH₵ ${money(cost)}</td>
+        <td class="mono" style="color:${profit >= 0 ? 'var(--good)' : 'var(--bad)'}">GH₵ ${money(profit)}</td>
+        <td class="mono">${formatDate(o.createdAt)}</td>
+      </tr>
+    `).join('');
+}
+
+document.getElementById('backfillBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('backfillBtn');
+  btn.disabled = true;
+  btn.textContent = '🔄 Backfilling…';
+  try {
+    const r = await adminApi('/admin/api/backfill-cost', { method: 'POST' });
+    const { updated, estimated, alreadyHadCost, skipped } = r.data;
+    showToast(`✅ Backfilled ${updated} exact + ${estimated} estimated (${alreadyHadCost} already had cost, ${skipped} skipped)`, 'success');
+    await loadOrders();
+  } catch (e) {
+    showToast('❌ Backfill failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 Backfill Cost Data';
+  }
+});
+
+document.getElementById('profitBtn').addEventListener('click', () => {
+  profitViewActive = !profitViewActive;
+  document.getElementById('ordersPanel').classList.toggle('hidden', profitViewActive);
+  document.getElementById('profitPanel').classList.toggle('hidden', !profitViewActive);
+  document.getElementById('profitBtn').textContent = profitViewActive ? '📋 Orders' : '📈 Profit';
+  if (profitViewActive) renderProfit(lastOrdersList);
+});
+
 function formatDate(dateStr){
   if (!dateStr) return '—';
   const d = new Date(dateStr);
@@ -654,6 +806,8 @@ async function deleteOrder(reference){
 async function loadOrders(){
   const r = await adminApi('/admin/api/orders');
   const list = r.data || [];
+  lastOrdersList = list;
+  if (profitViewActive) renderProfit(list);
 
   const counts = { 
     fulfilled: 0, 
@@ -797,6 +951,7 @@ document.getElementById('deleteModal').addEventListener('click', (e) => {
 async function enter(){
   ADMIN_KEY = document.getElementById('keyInput').value.trim() || ADMIN_KEY;
   try {
+    await loadConfig();
     await loadOrders();
     await loadBalance();
     document.getElementById('gate').classList.add('hidden');

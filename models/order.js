@@ -31,6 +31,10 @@ const OrderSchema = new mongoose.Schema(
 
     amount: Number,
 
+    costPrice: Number,
+
+    costEstimated: { type: Boolean, default: false },
+
     authorizationUrl: String,
     chargeStatus: String,
 
