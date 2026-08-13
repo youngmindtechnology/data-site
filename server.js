@@ -12,7 +12,6 @@ const orders = require('./lib/orderStore');
 const sms = require('./lib/sms');
 
 const app = express();
-app.use(cors());
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -21,6 +20,8 @@ const FLAT_MARKUP_GHS = Number(process.env.FLAT_MARKUP_GHS || 2);
 const BASE_URL = process.env.BASE_URL || 'https://youngmind.shop';
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const ADMIN_PHONE = process.env.ADMIN_PHONE || '';
+
+app.use(cors({ origin: BASE_URL }));
 
 // ============================================================
 // ADMIN MIDDLEWARE
@@ -251,7 +252,7 @@ app.post('/api/orders/init', async (req, res) => {
         phoneNumber,
         email,
         amount: chargePriceFor(network, pkg.capacity, pkg.price),
-         costPrice: Number(pkg.price), 
+        costPrice: Number(pkg.price), 
         createdAt: new Date().toISOString(),
       };
     } else if (type === 'checker') {
@@ -625,10 +626,6 @@ app.post('/api/orders/charge/verify', async (req, res) => {
     });
   } catch (err) { relay(res, err); }
 });
-
-/* ============================================================
-   FULFILLMENT
-   ============================================================ */
 
 async function fulfillOrder(reference) {
   return orders.withLock(reference, async () => {

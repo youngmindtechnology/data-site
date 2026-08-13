@@ -8,8 +8,6 @@
 
 <!-- ============================================================
      SEO / SOCIAL PREVIEW (Open Graph + Twitter Card)
-     Replace the placeholder URLs below with your real domain
-     and a real image (1200x630px works best for WhatsApp/FB).
      ============================================================ -->
 <meta name="description" content="Buy MTN, Telecel & AirtelTigo data bundles instantly in Ghana. Plus WAEC & BECE result checker PINs. Fast delivery, secure Paystack payment.">
 
@@ -147,11 +145,7 @@
   }
 
   /* ============================================================
-     TABS — horizontal-scrolling pill bar
-     Deliberately NOT an underline strip: filled pills make the
-     active tab obvious at a glance, and the visible edge fade +
-     scrollbar make it clear there's more to scroll to, so this
-     scales cleanly no matter how many tabs get added later.
+     TABS
      ============================================================ */
   .tabs-wrap{
     position:relative;
@@ -167,7 +161,6 @@
     border-radius:14px;
     -webkit-overflow-scrolling:touch;
   }
-  /* Visible (not hidden) scrollbar — this is the "noticeable" signal */
   .tabs::-webkit-scrollbar{ height:5px; }
   .tabs::-webkit-scrollbar-track{ background:transparent; }
   .tabs::-webkit-scrollbar-thumb{ background:var(--brand-yellow); border-radius:10px; }
@@ -196,7 +189,6 @@
     box-shadow:0 2px 8px rgba(255,203,5,0.35);
   }
 
-  /* Edge fades hint that the strip scrolls further in that direction */
   .tabs-wrap::before,
   .tabs-wrap::after{
     content:''; position:absolute; top:0; bottom:10px; width:28px;
@@ -277,7 +269,6 @@
   .net-btn[data-active="true"][data-net="YELLO"]{ border-color:#FFCB05; background:rgba(255,203,5,0.1); color:#FFCB05; }
   .net-btn[data-active="true"][data-net="TELECEL"]{ border-color:#E2001A; background:rgba(226,0,26,0.1); color:#FF6B7A; }
   .net-btn[data-active="true"][data-net="AT_PREMIUM"]{ border-color:#2D6CDF; background:rgba(45,108,223,0.12); color:#6FA0FF; }
-  /* Generic active state for non-network toggles (e.g. Yes/No radios) */
   .net-btn[data-active="true"]:not([data-net]){ border-color:var(--brand-yellow); background:rgba(255,203,5,0.08); color:var(--brand-yellow); }
 
   .pkg-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; margin-top:4px; }
@@ -373,9 +364,12 @@
   .onhold-note a{ color: var(--warn); font-weight:700; text-decoration:underline; }
 
   /* ============================================================
-     TRACKER
+     TRACKER CONTAINER
      ============================================================ */
-  #trackerContainer{ min-height:360px; width:100%; }
+  #trackerContainer{
+    min-height: 400px;
+    width: 100%;
+  }
 
   /* ============================================================
      CHECKER GRID
@@ -420,50 +414,50 @@
   footer{ text-align:center; color:var(--text-soft); font-size:12px; padding:20px 0; }
 
   /* ============================================================
-   PROMO OVERLAY (full-screen, shown on every page load)
+   PROMO OVERLAY
    ============================================================ */
-.promo-overlay{
-  position:fixed; inset:0; background:rgba(0,0,0,0.75);
-  display:flex; align-items:center; justify-content:center;
-  z-index:300; padding:20px;
-}
-.promo-overlay.hidden{ display:none !important; }
-.promo-box{
-  background:var(--panel); border:1px solid var(--line);
-  border-radius:var(--radius); padding:32px 28px;
-  max-width:380px; width:100%; text-align:center;
-  position:relative; box-shadow:var(--shadow);
-}
-.promo-close{
-  position:absolute; top:12px; right:14px;
-  background:none; border:none; font-size:24px; line-height:1;
-  color:var(--text-soft); cursor:pointer; padding:4px;
-}
-.promo-close:hover{ color:var(--text); }
-.promo-icon{
-  width:64px; height:64px; border-radius:50%;
-  background:#25D366; display:flex; align-items:center; justify-content:center;
-  margin:0 auto 16px;
-}
-.promo-icon svg{ width:32px; height:32px; }
-.promo-box h2{
-  font-family:'Sora',sans-serif; font-size:19px; margin:0 0 8px;
-  color:var(--text);
-}
-.promo-box p{
-  color:var(--text-soft); font-size:14px; margin:0 0 20px;
-}
-.promo-box a.btn-join{
-  display:inline-block; width:100%; box-sizing:border-box;
-  background:var(--brand-yellow); color:#1A1A2E;
-  font-family:'Sora',sans-serif; font-weight:700; font-size:14px;
-  text-decoration:none; padding:12px 20px; border-radius:10px;
-  transition:all 0.3s;
-}
-.promo-box a.btn-join:hover{ transform:translateY(-2px); box-shadow:0 4px 16px rgba(255,203,5,0.3); }
+  .promo-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.75);
+    display:flex; align-items:center; justify-content:center;
+    z-index:300; padding:20px;
+  }
+  .promo-overlay.hidden{ display:none !important; }
+  .promo-box{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:32px 28px;
+    max-width:380px; width:100%; text-align:center;
+    position:relative; box-shadow:var(--shadow);
+  }
+  .promo-close{
+    position:absolute; top:12px; right:14px;
+    background:none; border:none; font-size:24px; line-height:1;
+    color:var(--text-soft); cursor:pointer; padding:4px;
+  }
+  .promo-close:hover{ color:var(--text); }
+  .promo-icon{
+    width:64px; height:64px; border-radius:50%;
+    background:#25D366; display:flex; align-items:center; justify-content:center;
+    margin:0 auto 16px;
+  }
+  .promo-icon svg{ width:32px; height:32px; }
+  .promo-box h2{
+    font-family:'Sora',sans-serif; font-size:19px; margin:0 0 8px;
+    color:var(--text);
+  }
+  .promo-box p{
+    color:var(--text-soft); font-size:14px; margin:0 0 20px;
+  }
+  .promo-box a.btn-join{
+    display:inline-block; width:100%; box-sizing:border-box;
+    background:var(--brand-yellow); color:#1A1A2E;
+    font-family:'Sora',sans-serif; font-weight:700; font-size:14px;
+    text-decoration:none; padding:12px 20px; border-radius:10px;
+    transition:all 0.3s;
+  }
+  .promo-box a.btn-join:hover{ transform:translateY(-2px); box-shadow:0 4px 16px rgba(255,203,5,0.3); }
 
   /* ============================================================
-     FLOATING WHATSAPP BUTTON (draggable)
+     FLOATING WHATSAPP BUTTON
      ============================================================ */
   .wa-float-btn{
     position:fixed;
@@ -499,8 +493,7 @@
 <body>
 
 <!-- ============================================================
-     PROMO BANNER — shown on every page load, dismissible for the session
-     Replace WHATSAPP_GROUP_LINK below with your real group invite link.
+     PROMO BANNER
      ============================================================ -->
 <div class="promo-overlay" id="promoBanner">
   <div class="promo-box">
@@ -614,13 +607,9 @@
         <input type="tel" id="checkerPhone" placeholder="0241234567" maxlength="10">
         <div class="hint">SMS with PIN will be sent here.</div>
       </div>
-      <!-- <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-soft); margin-bottom:14px; cursor:pointer;">
-        <input type="checkbox" id="skipSms" style="width:16px;height:16px;">
-        Show PIN here instead of SMS
-      </label> -->
       <button class="btn btn-primary" id="checkerBtn" disabled>
-  <span id="checkerBtnLabel">Select a checker</span>
-</button>
+        <span id="checkerBtnLabel">Select a checker</span>
+      </button>
       <div class="result" id="checkerResult"></div>
     </div>
   </section>
@@ -658,7 +647,7 @@
   <section id="tab-tracker" class="tab-panel hidden">
     <div class="panel">
       <div class="panel-title">📡 Live Delivery Tracker</div>
-      <div class="panel-sub">See your orders in real time.</div>
+      <div class="panel-sub">Track your orders in real-time as they move through our delivery pipeline.</div>
       <div id="trackerContainer"></div>
     </div>
   </section>
@@ -744,10 +733,9 @@
     </div>
   </div>
 </div>
+
 <!-- ============================================================
-     FLOATING WHATSAPP BUTTON (draggable, click opens chat)
-     Replace WHATSAPP_NUMBER below with your number in international
-     format, no + and no leading 0, e.g. 233551234567
+     FLOATING WHATSAPP BUTTON
      ============================================================ -->
 <div class="wa-float-btn" id="waFloatBtn" data-wa-number="233533980571" aria-label="Chat with admin on WhatsApp" role="button">
   <svg viewBox="0 0 32 32" fill="#fff" xmlns="http://www.w3.org/2000/svg">
@@ -757,7 +745,7 @@
 </div>
 
 <!-- ============================================================
-     DATAMART TRACKER WIDGET
+     DATAMART DELIVERY TRACKER WIDGET
      ============================================================ -->
 <script src="https://api.datamartgh.shop/widgets/delivery-tracker.js"
         data-api-key="f9c65cb7d4c87c176406336793d7d40a927c7d533adeaf86622dc1654ee80f2e"
@@ -767,13 +755,11 @@
 </script>
 
 <!-- ============================================================
-     SCRIPT
+     MAIN APPLICATION SCRIPT
      ============================================================ -->
 <script>
 // ============================================================
 // PROMO BANNER — dismiss for this page load only
-// (No localStorage suppression: per the requirement, it should
-// show again every time the page opens.)
 // ============================================================
 document.getElementById('promoBannerClose').addEventListener('click', () => {
   document.getElementById('promoBanner').classList.add('hidden');
@@ -785,7 +771,6 @@ document.getElementById('promoBannerClose').addEventListener('click', () => {
 (function setupWaFloatBtn(){
   const btn = document.getElementById('waFloatBtn');
 
-  // Default position: bottom-right, above safe area.
   function setDefaultPosition(){
     const margin = 20;
     const size = 56;
@@ -794,7 +779,6 @@ document.getElementById('promoBannerClose').addEventListener('click', () => {
   }
   setDefaultPosition();
   window.addEventListener('resize', () => {
-    // Keep it on-screen if the viewport shrinks (e.g. rotate).
     const rect = btn.getBoundingClientRect();
     const maxLeft = window.innerWidth - rect.width - 4;
     const maxTop = window.innerHeight - rect.height - 4;
@@ -805,7 +789,7 @@ document.getElementById('promoBannerClose').addEventListener('click', () => {
   let dragging = false;
   let moved = false;
   let startX = 0, startY = 0, origLeft = 0, origTop = 0;
-  const DRAG_THRESHOLD = 6; // px — below this, treat it as a click/tap
+  const DRAG_THRESHOLD = 6;
 
   function onPointerDown(e){
     dragging = true;
@@ -840,7 +824,6 @@ document.getElementById('promoBannerClose').addEventListener('click', () => {
     dragging = false;
     btn.classList.remove('dragging');
     if (!moved) {
-      // Treated as a tap/click, not a drag — open WhatsApp chat.
       const number = btn.dataset.waNumber;
       window.open(`https://wa.me/${number}`, '_blank', 'noopener');
     }
@@ -867,8 +850,24 @@ themeToggle.addEventListener('click', () => {
   html.setAttribute('data-theme', next);
   themeToggle.textContent = next === 'dark' ? '🌙' : '☀️';
   localStorage.setItem('theme', next);
-  const tracker = document.querySelector('script[src*="delivery-tracker.js"]');
-  if (tracker) tracker.setAttribute('data-theme', next);
+  
+  // Update DataMart widget theme
+  const widget = document.querySelector('script[src*="delivery-tracker.js"]');
+  if (widget) {
+    widget.setAttribute('data-theme', next);
+    // Reload the widget
+    const container = document.getElementById('trackerContainer');
+    if (container) {
+      container.innerHTML = '';
+      const newScript = document.createElement('script');
+      newScript.src = widget.src;
+      newScript.setAttribute('data-api-key', widget.getAttribute('data-api-key'));
+      newScript.setAttribute('data-theme', next);
+      newScript.setAttribute('data-container', 'trackerContainer');
+      newScript.setAttribute('data-poll', widget.getAttribute('data-poll') || '15');
+      widget.parentNode.replaceChild(newScript, widget);
+    }
+  }
 });
 
 // ============================================================
@@ -891,10 +890,12 @@ let modalState = {
   momoPhone: '',
   momoNetwork: 'YELLO',
   reference: null,
+  isChecker: false,
+  checkerType: null,
+  skipSms: false,
+  mismatchConfirmed: { recipient: false, momo: false }
 };
 
-// WhatsApp number used for the "contact support" link in the
-// on-hold note — kept in sync with the floating WhatsApp button.
 const SUPPORT_WA_NUMBER = '233533980571';
 
 // ============================================================
@@ -903,18 +904,9 @@ const SUPPORT_WA_NUMBER = '233533980571';
 function money(n){ return Number(n).toFixed(2); }
 function netLabel(n){ return { YELLO:'MTN', TELECEL:'Telecel', AT_PREMIUM:'AirtelTigo' }[n]||n; }
 
-// ------------------------------------------------------------
-// Ghana network prefix detection
-// Maps the first 3 digits of a local (0XXXXXXXXX) number to a
-// network code, so we can warn/stop people from buying a bundle
-// on the wrong network for their number.
-// ------------------------------------------------------------
 const NETWORK_PREFIX_MAP = {
-  // MTN
   '024':'YELLO','025':'YELLO','053':'YELLO','054':'YELLO','055':'YELLO','059':'YELLO',
-  // Telecel (formerly Vodafone)
   '020':'TELECEL','050':'TELECEL',
-  // AirtelTigo
   '026':'AT_PREMIUM','027':'AT_PREMIUM','028':'AT_PREMIUM','056':'AT_PREMIUM','057':'AT_PREMIUM',
 };
 
@@ -925,10 +917,6 @@ function detectNetworkFromPhone(phone){
   return NETWORK_PREFIX_MAP[prefix] || null;
 }
 
-// Wires up a phone <input> + warning element pair: shows a live
-// warning when the typed number's detected network doesn't match
-// `getExpectedNetwork()`, and returns a `hasMismatch()` check that
-// callers can use to block submission.
 function wireNetworkMismatchWarning(inputEl, warningEl, warningTextEl, getExpectedNetwork){
   let mismatch = false;
   function update(){
@@ -964,13 +952,19 @@ async function api(path, opts = {}){
   return data;
 }
 
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
 // ============================================================
 // DESCRIBE ORDER
 // ============================================================
 function describeOrder(d){
   const status = d.status || d.orderStatus || 'unknown';
   const done = ['fulfilled','completed','delivered'].includes(status);
-  const failed = ['payment_failed','fulfillment_failed','failed'].includes(status);
+  const failed = ['payment_failed','failed'].includes(status);
   const wait = ['pending','processing','waiting','paid'].includes(status);
 
   let rows = `
@@ -993,10 +987,17 @@ function describeOrder(d){
     rows += `<div class="row"><span>Date</span><span>${date.toLocaleDateString()}</span></div>`;
   }
 
-  // Special case: DataMart put this order on hold for manual network
-  // verification (e.g. "beneficiary not allowed"). This is not a
-  // failure and no money is lost — show a clear, reassuring
-  // explanation instead of a bare "waiting" status.
+  if (status === 'fulfillment_failed') {
+    rows += `
+      <div class="onhold-note">
+        <p>✅ <b>Payment received — delivery in progress</b></p>
+        <p>Your payment went through fine. We're completing delivery now — this is <b>not a failed order and no money is lost</b>. It usually resolves within a few minutes.</p>
+        <p><b>What you need to do:</b> Nothing — no need to re-order or re-pay. If it hasn't arrived after a while, <a href="https://wa.me/${SUPPORT_WA_NUMBER}" target="_blank" rel="noopener">contact support</a> with your reference.</p>
+      </div>
+    `;
+    return { cls:'warn', title:'⏳ Delivering', body: rows };
+  }
+
   const onHold = d.orderStatus === 'waiting'
     && /stored for manual processing/i.test(d.apiResponse?.message || '');
 
@@ -1021,7 +1022,7 @@ function describeOrder(d){
 }
 
 // ============================================================
-// TABS — horizontal scroll bar with edge-fade "more tabs" hints
+// TABS
 // ============================================================
 const tabsWrap = document.getElementById('tabsWrap');
 const tabsScroller = document.getElementById('tabsScroller');
@@ -1041,14 +1042,12 @@ document.querySelectorAll('.tab').forEach(tab => {
     tab.setAttribute('aria-selected','true');
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
     document.getElementById('tab-'+tab.dataset.tab).classList.remove('hidden');
-    // Bring the newly active tab fully into view — matters once there
-    // are enough tabs that some sit off-screen on smaller devices.
     tab.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
   });
 });
 
 // ============================================================
-// BUY DATA — package grid opens the purchase modal
+// BUY DATA
 // ============================================================
 const pkgGrid = document.getElementById('pkgGrid');
 const pkgSub = document.getElementById('pkgSub');
@@ -1070,10 +1069,6 @@ async function loadPackages(){
   } catch(e){ pkgSub.textContent = 'Error loading packages'; }
 }
 
-// Shows the plain bundle price only. The Paystack processing fee is
-// NOT included here — it's only added at checkout time (see the
-// purchase modal and /api/orders/charge/init on the backend), so
-// what the customer sees while browsing is the clean bundle price.
 function renderPackages(){
   const list = state.packages[state.network] || [];
   pkgSub.textContent = list.length ? `${list.length} bundles` : 'No packages';
@@ -1097,9 +1092,6 @@ const modalStepOtp = document.getElementById('modalStepOtp');
 const modalStepStatus = document.getElementById('modalStepStatus');
 const momoFields = document.getElementById('momoFields');
 
-// Live network-mismatch warnings for the recipient number (checked
-// against the bundle's network) and the MoMo number (checked
-// against whichever network button is selected for MoMo).
 const recipientNetWarning = wireNetworkMismatchWarning(
   document.getElementById('modalRecipientPhone'),
   document.getElementById('modalPhoneNetWarning'),
@@ -1135,28 +1127,23 @@ function openPurchaseModal(pkg, prefillPhone) {
     isChecker: isChecker,
     checkerType: pkg.checkerType || null,
     skipSms: pkg.skipSms || false,
+    mismatchConfirmed: { recipient: false, momo: false },
   };
 
-  // Update modal title and summary
   if (isChecker) {
     document.getElementById('modalPkgSummary').innerHTML = 
       `<b>🎓 ${pkg.checkerType} Checker</b> — GH₵ ${money(pkg.price)}`;
     document.querySelector('.modal-title').textContent = 'Complete your checker order';
-    
-    // ✅ FIX: Update the label for checkers
     document.querySelector('#modalStepForm .field label').textContent = 'Phone number for checker delivery';
     document.querySelector('#modalStepForm .field .hint').textContent = 'The checker PIN will be sent to this number via SMS.';
   } else {
     document.getElementById('modalPkgSummary').innerHTML = 
       `<b>${netLabel(state.network)} ${pkg.capacity}GB</b> — GH₵ ${money(pkg.price)}`;
     document.querySelector('.modal-title').textContent = 'Complete your order';
-    
-    // Reset label for data bundles
     document.querySelector('#modalStepForm .field label').textContent = 'Beneficiary number (gets the data)';
     document.querySelector('#modalStepForm .field .hint').textContent = '';
   }
 
-  // Pre-fill recipient phone if provided
   if (prefillPhone) {
     document.getElementById('modalRecipientPhone').value = prefillPhone;
   } else {
@@ -1189,7 +1176,7 @@ function closePurchaseModal(){
 document.getElementById('modalClose').addEventListener('click', closePurchaseModal);
 document.getElementById('modalDoneBtn').addEventListener('click', () => {
   closePurchaseModal();
-  loadPackages(); // refresh in case stock/prices changed
+  loadPackages();
 });
 purchaseModal.addEventListener('click', (e) => { if (e.target === purchaseModal) closePurchaseModal(); });
 
@@ -1212,21 +1199,50 @@ document.querySelectorAll('#momoNetGrid .net-btn').forEach(btn => {
   });
 });
 
+// ============================================================
+// MODAL PAY BUTTON
+// ============================================================
 const modalPayBtn = document.getElementById('modalPayBtn');
+
+function setMismatchConfirm(el, message, onConfirm){
+  el.className = 'result show';
+  el.innerHTML = `
+    <div class="receipt warn">
+      <h3>⚠️ Double-check the network</h3>
+      <p>${message}</p>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button type="button" class="btn btn-secondary" id="mismatchCancelBtn" style="flex:1;">No, let me fix it</button>
+        <button type="button" class="btn btn-primary" id="mismatchConfirmBtn" style="flex:1;">Yes, continue anyway</button>
+      </div>
+    </div>`;
+  document.getElementById('mismatchCancelBtn').addEventListener('click', () => clearResult(el));
+  document.getElementById('mismatchConfirmBtn').addEventListener('click', () => {
+    clearResult(el);
+    onConfirm();
+  });
+}
+
 modalPayBtn.addEventListener('click', async () => {
   const formResult = document.getElementById('modalFormResult');
   clearResult(formResult);
-
+  
   const recipientPhone = document.getElementById('modalRecipientPhone').value.trim();
   if (!/^0\d{9}$/.test(recipientPhone)) {
     return setResult(formResult, 'err', '<h3>Invalid number</h3><p>Enter the beneficiary number as 10 digits starting with 0.</p>');
   }
 
-  // For data bundles: check network mismatch
   if (!modalState.isChecker) {
     const recipientNetwork = detectNetworkFromPhone(recipientPhone);
-    if (recipientNetwork && recipientNetwork !== modalState.network) {
-      return setResult(formResult, 'err', `<h3>Network mismatch</h3><p>${recipientPhone} looks like a <b>${netLabel(recipientNetwork)}</b> number, but this bundle is for <b>${netLabel(modalState.network)}</b>. Close this and pick a ${netLabel(recipientNetwork)} bundle instead, or double-check the number.</p>`);
+    if (recipientNetwork && recipientNetwork !== modalState.network && !modalState.mismatchConfirmed.recipient) {
+      setMismatchConfirm(
+        formResult,
+        `${esc(recipientPhone)} looks like a <b>${esc(netLabel(recipientNetwork))}</b> number, but you've selected the <b>${esc(netLabel(modalState.network))}</b> bundle. Is that intentional?`,
+        () => {
+          modalState.mismatchConfirmed.recipient = true;
+          modalPayBtn.click();
+        }
+      );
+      return;
     }
   }
 
@@ -1245,8 +1261,16 @@ modalPayBtn.addEventListener('click', async () => {
     momoNetwork = activeNetBtn ? activeNetBtn.dataset.net : (modalState.isChecker ? 'YELLO' : modalState.network);
 
     const momoDetected = detectNetworkFromPhone(momoPhone);
-    if (momoDetected && momoDetected !== momoNetwork) {
-      return setResult(formResult, 'err', `<h3>Network mismatch</h3><p>${momoPhone} looks like a <b>${netLabel(momoDetected)}</b> number, but you selected <b>${netLabel(momoNetwork)}</b> for Mobile Money. Please correct the network or the number.</p>`);
+    if (momoDetected && momoDetected !== momoNetwork && !modalState.mismatchConfirmed.momo) {
+      setMismatchConfirm(
+        formResult,
+        `${esc(momoPhone)} looks like a <b>${esc(netLabel(momoDetected))}</b> number, but you selected <b>${esc(netLabel(momoNetwork))}</b> for Mobile Money. Is that intentional?`,
+        () => {
+          modalState.mismatchConfirmed.momo = true;
+          modalPayBtn.click();
+        }
+      );
+      return;
     }
   }
 
@@ -1288,7 +1312,9 @@ modalPayBtn.addEventListener('click', async () => {
   }
 });
 
-
+// ============================================================
+// CHARGE RESPONSE HANDLING
+// ============================================================
 function ussdHintFor(network){
   if (network === 'YELLO') {
     return "Didn't get a prompt? Dial <b>*170#</b> on your phone and approve the pending payment.";
@@ -1327,7 +1353,6 @@ document.getElementById('ivePaidBtn').addEventListener('click', async () => {
   btn.innerHTML = '<span class="spinner"></span> Checking with your network…';
 
   try {
-    // Always ask Paystack directly — never assume "I've paid" means it actually went through.
     const r = await api('/api/orders/charge/verify', { method: 'POST', body: { reference: modalState.reference } });
     const d = r.data;
 
@@ -1444,9 +1469,6 @@ async function loadCheckerProducts(){
   } catch(e){ checkerSub.textContent = 'Error loading checkers'; }
 }
 
-// Shows the plain checker price only — no processing fee added.
-// The fee is applied server-side (see /api/orders/init) at the
-// moment the order is actually created and sent to Paystack.
 function renderCheckerProducts(){
   checkerSub.textContent = 'Select a checker type';
   checkerGrid.innerHTML = '';
@@ -1471,10 +1493,8 @@ function renderCheckerProducts(){
   });
 }
 
-// Replace the checkerBtn click handler in your HTML script
 checkerBtn.addEventListener('click', async () => {
   const phone = document.getElementById('checkerPhone').value.trim();
-  //const skip = document.getElementById('skipSms').checked;
   clearResult(checkerResult);
   
   if (!/^0\d{9}$/.test(phone)) {
@@ -1482,13 +1502,11 @@ checkerBtn.addEventListener('click', async () => {
   }
   if (!state.selectedChecker) return;
 
-  // Open the modal with checker data
   const checkerPkg = {
     capacity: state.selectedChecker.name,
     price: state.selectedChecker.price,
     isChecker: true,
     checkerType: state.selectedChecker.name,
-    //skipSms: skip
   };
   
   openPurchaseModal(checkerPkg, phone);
