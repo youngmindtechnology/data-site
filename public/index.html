@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- Font Awesome 6 CDN -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+  integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+/>
 <title>Young Mind Data Plug</title>
 
 <!-- ============================================================
@@ -74,6 +82,11 @@
     font-family:'Inter',sans-serif;
     min-height:100vh;
     transition: background 0.3s, color 0.3s;
+  }
+
+  .fas{
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
   }
 
   /* ============================================================
@@ -493,6 +506,8 @@
 <!-- ============================================================
      PROMO BANNER
      ============================================================ -->
+
+     <!-- CHANGE ALL ICON TO USE FAS -->
 <div class="promo-overlay" id="promoBanner">
   <div class="promo-box">
     <button class="promo-close" id="promoBannerClose" aria-label="Dismiss">&times;</button>
@@ -522,7 +537,7 @@
   </a>
   <div class="topbar-actions">
     <div class="status-pill"><span class="dot"></span>Live</div>
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
   </div>
 </div>
 
@@ -543,10 +558,10 @@
   <!-- Tabs -->
   <div class="tabs-wrap" id="tabsWrap">
     <div class="tabs" role="tablist" id="tabsScroller">
-      <button class="tab" data-tab="buy" role="tab" aria-selected="true"><span class="tab-icon">📶</span>Buy Data</button>
-      <button class="tab" data-tab="verify" role="tab" aria-selected="false"><span class="tab-icon">🔍</span>Verify</button>
-      <button class="tab" data-tab="checker" role="tab" aria-selected="false"><span class="tab-icon">🎓</span>Checkers</button>
-      <button class="tab" data-tab="track" role="tab" aria-selected="false"><span class="tab-icon">📦</span>Track</button>
+      <button class="tab" data-tab="buy" role="tab" aria-selected="true"><span class="tab-icon"><i class="fas fa-wifi"></i></span>Buy Data</button>
+      <button class="tab" data-tab="verify" role="tab" aria-selected="false"><span class="tab-icon"><i class="fas fa-search"></i></span>Verify</button>
+      <button class="tab" data-tab="checker" role="tab" aria-selected="false"><span class="tab-icon"><i class="fas fa-list"></i></span>Checkers</button>
+      <button class="tab" data-tab="track" role="tab" aria-selected="false"><span class="tab-icon"><i class="fas fa-truck"></i></span>Track</button>
     </div>
   </div>
 
@@ -622,8 +637,8 @@
       <div class="field">
         <label>What did you buy?</label>
         <div class="net-grid" style="grid-template-columns:1fr 1fr;">
-          <button class="net-btn" id="trackTypeData" data-active="true">📶 Data</button>
-          <button class="net-btn" id="trackTypeChecker" data-active="false">🎓 Checker</button>
+          <button class="net-btn" id="trackTypeData" data-active="true"><i class="fas fa-wifi"></i> Data</button>
+          <button class="net-btn" id="trackTypeChecker" data-active="false"><i class="fas fa-graduation-cap"></i> Checker</button>
         </div>
       </div>
 
@@ -643,7 +658,7 @@
        ============================================================ -->
   <section id="tab-tracker" class="tab-panel hidden">
     <div class="panel">
-      <div class="panel-title">📡 Live Delivery Tracker</div>
+      <div class="panel-title"><i class="fas fa-map-marker-alt"></i> Live Delivery Tracker</div>
       <div class="panel-sub">Track your orders in real-time as they move through our delivery pipeline.</div>
       <div id="trackerContainer"></div>
     </div>
@@ -668,7 +683,7 @@
         <label id="recipientLabel">Beneficiary number (gets the data)</label>
         <input type="tel" id="modalRecipientPhone" placeholder="0551234567" maxlength="10">
         <div class="hint" id="recipientHint"></div>
-        <div class="net-warning" id="modalPhoneNetWarning">⚠️ <span id="modalPhoneNetWarningText"></span></div>
+        <div class="net-warning" id="modalPhoneNetWarning"><i class="fas fa-exclamation-triangle"></i> <span id="modalPhoneNetWarningText"></span></div>
       </div>
 
       <div class="field">
@@ -683,14 +698,14 @@
         <div class="field">
           <label>Mobile Money number</label>
           <input type="tel" id="modalMomoPhone" placeholder="0551234567" maxlength="10">
-          <div class="net-warning" id="modalMomoNetWarning">⚠️ <span id="modalMomoNetWarningText"></span></div>
+          <div class="net-warning" id="modalMomoNetWarning"><i class="fas fa-exclamation-triangle"></i> <span id="modalMomoNetWarningText"></span></div>
         </div>
         <div class="field">
           <label>Mobile Money network</label>
           <div class="net-grid" id="momoNetGrid">
-            <button type="button" class="net-btn" data-net="YELLO" data-active="true">MTN</button>
-            <button type="button" class="net-btn" data-net="TELECEL">Telecel</button>
-            <button type="button" class="net-btn" data-net="AT_PREMIUM">AirtelTigo</button>
+            <button type="button" class="net-btn" data-net="YELLO" data-active="true"><i class="fas fa-mobile-alt"></i> MTN</button>
+            <button type="button" class="net-btn" data-net="TELECEL"><i class="fas fa-mobile-alt"></i> Telecel</button>
+            <button type="button" class="net-btn" data-net="AT_PREMIUM"><i class="fas fa-mobile-alt"></i> AirtelTigo</button>
           </div>
         </div>
       </div>
@@ -825,13 +840,13 @@ const themeToggle = document.getElementById('themeToggle');
 const html = document.documentElement;
 const saved = localStorage.getItem('theme') || 'dark';
 html.setAttribute('data-theme', saved);
-themeToggle.textContent = saved === 'dark' ? '🌙' : '☀️';
+themeToggle.innerHTML = saved === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
 
 themeToggle.addEventListener('click', () => {
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  themeToggle.textContent = next === 'dark' ? '🌙' : '☀️';
+  themeToggle.innerHTML = next === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   localStorage.setItem('theme', next);
   
   // Update DataMart widget theme
@@ -973,12 +988,12 @@ function describeOrder(d){
   if (status === 'fulfillment_failed') {
     rows += `
       <div class="onhold-note">
-        <p>✅ <b>Payment received — delivery in progress</b></p>
+        <p><i class="fas fa-info-circle"></i> <b>Payment received — delivery in progress</b></p>
         <p>Your payment went through fine. We're completing delivery now — this is <b>not a failed order and no money is lost</b>. It usually resolves within a few minutes.</p>
         <p><b>What you need to do:</b> Nothing — no need to re-order or re-pay. If it hasn't arrived after a while, <a href="https://wa.me/${SUPPORT_WA_NUMBER}" target="_blank" rel="noopener">contact support</a> with your reference.</p>
       </div>
     `;
-    return { cls:'warn', title:'⏳ Delivering', body: rows };
+    return { cls:'warn', title:'<i class="fas fa-truck"></i> Delivering', body: rows };
   }
 
   const onHold = d.orderStatus === 'waiting'
@@ -987,21 +1002,21 @@ function describeOrder(d){
   if (onHold) {
     rows += `
       <div class="onhold-note">
-        <p>🕐 <b>On hold — this number isn't accepted yet</b></p>
+        <p><i class="fas fa-clock"></i> <b>On hold — this number isn't accepted yet</b></p>
         <p>This number was temporarily rejected ("beneficiary not allowed"). This is <b>not a failed order and no money is lost</b>. We've added it to our next verification batch — once it clears, the data is delivered automatically. This can take a little time.</p>
         <p><b>What you need to do:</b> Nothing — no need to re-order or re-pay. Just wait; it delivers once it's cleared. If you'd rather have a refund, <a href="https://wa.me/${SUPPORT_WA_NUMBER}" target="_blank" rel="noopener">contact support</a>. ⚠️</p>
         <p>Note: taking the refund removes this number from the batch we re-submit, so it won't be delivered later.</p>
       </div>
     `;
-    return { cls:'warn', title:'🕐 On Hold — Verifying', body: rows };
+    return { cls:'warn', title:'<i class="fas fa-clock"></i> On Hold — Verifying', body: rows };
   }
 
   if (d.message || d.note) rows += `<p>${d.message||d.note}</p>`;
 
-  if (done) return { cls:'ok', title:'✅ Done', body:rows };
-  if (failed) return { cls:'err', title:'❌ Failed', body:rows };
-  if (wait) return { cls:'warn', title:'⏳ Processing', body:rows };
-  return { cls:'warn', title:'📋 Found', body:rows };
+  if (done) return { cls:'ok', title:'<i class="fas fa-check-circle"></i> Done', body:rows };
+  if (failed) return { cls:'err', title:'<i class="fas fa-times-circle"></i> Failed', body:rows };
+  if (wait) return { cls:'warn', title:'<i class="fas fa-hourglass-half"></i> Processing', body:rows };
+  return { cls:'warn', title:'<i class="fas fa-list"></i> Found', body:rows };
 }
 
 // ============================================================
@@ -1191,7 +1206,7 @@ function setMismatchConfirm(el, message, onConfirm){
   el.className = 'result show';
   el.innerHTML = `
     <div class="receipt warn">
-      <h3>⚠️ Double-check the network</h3>
+      <h3><i class="fas fa-exclamation-triangle"></i> Double-check the network</h3>
       <p>${message}</p>
       <div style="display:flex; gap:8px; margin-top:10px;">
         <button type="button" class="btn btn-secondary" id="mismatchCancelBtn" style="flex:1;">No, let me fix it</button>
@@ -1211,7 +1226,7 @@ modalPayBtn.addEventListener('click', async () => {
   
   const recipientPhone = document.getElementById('modalRecipientPhone').value.trim();
   if (!/^0\d{9}$/.test(recipientPhone)) {
-    return setResult(formResult, 'err', '<h3>Invalid number</h3><p>Enter the beneficiary number as 10 digits starting with 0.</p>');
+    return setResult(formResult, 'err', '<h3><i class="fas fa-exclamation-circle"></i> Invalid number</h3><p>Enter the beneficiary number as 10 digits starting with 0.</p>');
   }
 
   if (!modalState.isChecker) {
@@ -1238,7 +1253,7 @@ modalPayBtn.addEventListener('click', async () => {
   } else {
     momoPhone = document.getElementById('modalMomoPhone').value.trim();
     if (!/^0\d{9}$/.test(momoPhone)) {
-      return setResult(formResult, 'err', '<h3>Invalid Mobile Money number</h3><p>Enter 10 digits starting with 0.</p>');
+      return setResult(formResult, 'err', '<h3><i class="fas fa-exclamation-circle"></i> Invalid Mobile Money number</h3><p>Enter 10 digits starting with 0.</p>');
     }
     const activeNetBtn = document.querySelector('#momoNetGrid .net-btn[data-active="true"]');
     momoNetwork = activeNetBtn ? activeNetBtn.dataset.net : (modalState.isChecker ? 'YELLO' : modalState.network);
@@ -1320,7 +1335,7 @@ function handleChargeResponse(data){
   } else if (data.chargeStatus === 'success') {
     pollModalOrderStatus(modalState.reference);
   } else {
-    setResult(document.getElementById('modalFormResult'), 'err', '<h3>Payment could not be started</h3><p>Please try again.</p>');
+    setResult(document.getElementById('modalFormResult'), 'err', '<h3><i class="fas fa-exclamation-circle"></i> Payment could not be started</h3><p>Please try again.</p>');
   }
 }
 
@@ -1342,12 +1357,12 @@ document.getElementById('ivePaidBtn').addEventListener('click', async () => {
     if (d.chargeStatus === 'success') {
       pollModalOrderStatus(modalState.reference);
     } else if (d.chargeStatus === 'failed') {
-      setResult(offlineResult, 'err', `<h3>Payment not approved</h3><p>${d.message || 'This payment was not completed. You can go back and try again.'}</p>`);
+      setResult(offlineResult, 'err', `<h3><i class="fas fa-exclamation-circle"></i> Payment not approved</h3><p>${d.message || 'This payment was not completed. You can go back and try again.'}</p>`);
     } else {
-      setResult(offlineResult, 'warn', `<h3>Not confirmed yet</h3><p>${d.message || "We haven't received your approval yet."}</p>`);
+      setResult(offlineResult, 'warn', `<h3><i class="fas fa-info-circle"></i> Not confirmed yet</h3><p>${d.message || "We haven't received your approval yet."}</p>`);
     }
   } catch(e) {
-    setResult(offlineResult, 'err', `<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
+    setResult(offlineResult, 'err', `<h3><i class="fas fa-exclamation-circle"></i> Error</h3><p>${e.data?.message||e.message}</p>`);
   } finally {
     btn.disabled = false;
     btn.textContent = orig;
@@ -1361,7 +1376,7 @@ document.getElementById('modalOtpBtn').addEventListener('click', async () => {
   clearResult(otpResult);
 
   const otp = otpInput.value.trim();
-  if (!otp) return setResult(otpResult, 'err', '<h3>Enter the code</h3>');
+  if (!otp) return setResult(otpResult, 'err', '<h3><i class="fas fa-exclamation-circle"></i> Enter the code</h3>');
 
   const orig = otpBtn.textContent;
   otpBtn.disabled = true;
@@ -1374,7 +1389,7 @@ document.getElementById('modalOtpBtn').addEventListener('click', async () => {
     });
     handleChargeResponse(r.data);
   } catch(e) {
-    setResult(otpResult, 'err', `<h3>Verification failed</h3><p>${e.data?.message||e.message}</p>`);
+    setResult(otpResult, 'err', `<h3><i class="fas fa-exclamation-circle"></i> Verification failed</h3><p>${e.data?.message||e.message}</p>`);
   } finally {
     otpBtn.disabled = false;
     otpBtn.textContent = orig;
@@ -1415,7 +1430,7 @@ document.getElementById('verifyBtn').addEventListener('click', async () => {
   const phone = document.getElementById('verifyPhone').value.trim();
   const res = document.getElementById('verifyResult');
   clearResult(res);
-  if (!/^0\d{9}$/.test(phone)) return setResult(res,'err','<h3>Invalid phone</h3>');
+  if (!/^0\d{9}$/.test(phone)) return setResult(res,'err','<h3><i class="fas fa-exclamation-circle"></i> Invalid phone</h3>');
 
   const orig = document.getElementById('verifyBtn').textContent;
   document.getElementById('verifyBtn').disabled = true;
@@ -1425,10 +1440,10 @@ document.getElementById('verifyBtn').addEventListener('click', async () => {
     const r = await api('/api/verify-number', { method:'POST', body:{ phoneNumber:phone } });
     const d = r.data;
     const cls = d.servable ? 'ok' : 'warn';
-    const badge = d.recommendation === 'sell_any' ? '✅ Ready' : '⚠️ Needs activation';
-    setResult(res, cls, `<h3>${d.network} ${badge}</h3><div class="row"><span>Number</span><span>${d.phoneNumber}</span></div><p>${d.message}</p>`);
+    const badge = d.recommendation === 'sell_any' ? '<i class="fas fa-check-circle"></i> Ready' : '<i class="fas fa-info-circle"></i> Needs activation';
+    setResult(res, cls, `<h3><i class="fas fa-info-circle"></i> ${d.network} ${badge}</h3><div class="row"><span>Number</span><span>${d.phoneNumber}</span></div><p>${d.message}</p>`);
   } catch(e) {
-    setResult(res,'err',`<h3>Error</h3><p>${e.data?.message||e.message}</p>`);
+    setResult(res,'err',`<h3><i class="fas fa-exclamation-circle"></i> Error</h3><p>${e.data?.message||e.message}</p>`);
   } finally {
     document.getElementById('verifyBtn').disabled = false;
     document.getElementById('verifyBtn').textContent = orig;
@@ -1481,7 +1496,7 @@ checkerBtn.addEventListener('click', async () => {
   clearResult(checkerResult);
   
   if (!/^0\d{9}$/.test(phone)) {
-    return setResult(checkerResult, 'err', '<h3>Invalid phone</h3><p>Enter 10 digits starting with 0.</p>');
+    return setResult(checkerResult, 'err', '<h3><i class="fas fa-exclamation-circle"></i> Invalid phone</h3><p>Enter 10 digits starting with 0.</p>');
   }
   if (!state.selectedChecker) return;
 
@@ -1555,7 +1570,7 @@ trackRefInput.addEventListener('input', e => e.target.value = e.target.value.toU
 trackBtn.addEventListener('click', async () => {
   const ref = trackRefInput.value.trim().toUpperCase();
   clearResult(trackResult);
-  if (!ref) return setResult(trackResult,'err','<h3>Enter a reference</h3>');
+  if (!ref) return setResult(trackResult,'err','<h3><i class="fas fa-exclamation-circle"></i> Enter a reference</h3>');
 
   const orig = trackBtn.textContent;
   trackBtn.disabled = true;
@@ -1564,9 +1579,9 @@ trackBtn.addEventListener('click', async () => {
   try {
     const r = await api('/api/orders/lookup', { method:'POST', body:{ reference:ref, type:state.trackType } });
     const { cls, title, body } = describeOrder(r.data);
-    setResult(trackResult, cls, `<h3>${title}</h3>${body}`);
+    setResult(trackResult, cls, `<h3><i class="fas fa-info-circle"></i> ${title}</h3>${body}`);
   } catch(e) {
-    setResult(trackResult,'err',`<h3>Not found</h3><p>${e.data?.message||e.message}</p>`);
+    setResult(trackResult,'err',`<h3><i class="fas fa-exclamation-circle"></i> Not found</h3><p>${e.data?.message||e.message}</p>`);
   } finally {
     trackBtn.disabled = false;
     trackBtn.textContent = orig;
