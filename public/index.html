@@ -4,14 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Font Awesome 6 CDN -->
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-  integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
-  crossorigin="anonymous"
-  referrerpolicy="no-referrer"
-/>
+<!-- ============================================================
+     FONTAWESOME
+     ============================================================ -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+
+<!-- ============================================================
+     CLOUDFLARE TURNSTILE
+     ============================================================ -->
+     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
 <title>Young Mind Data Plug</title>
 
 <!-- ============================================================
@@ -420,6 +422,14 @@
   .modal-pkg-summary b{ color:var(--text); }
 
   /* ============================================================
+     TURNSTILE WIDGET WRAPPER
+     ============================================================ */
+  .turnstile-wrap{
+    display:flex; justify-content:center;
+    margin:4px 0 14px;
+  }
+
+  /* ============================================================
      FOOTER
      ============================================================ */
   footer{ text-align:center; color:var(--text-soft); font-size:12px; padding:20px 0; }
@@ -506,8 +516,6 @@
 <!-- ============================================================
      PROMO BANNER
      ============================================================ -->
-
-     <!-- CHANGE ALL ICON TO USE FAS -->
 <div class="promo-overlay" id="promoBanner">
   <div class="promo-box">
     <button class="promo-close" id="promoBannerClose" aria-label="Dismiss">&times;</button>
@@ -711,7 +719,13 @@
       </div>
 
       <div class="hint" style="margin-bottom:10px;">A small processing fee applies at checkout — the exact amount will be shown on the payment prompt.</div>
-      <button class="btn btn-primary" id="modalPayBtn">Pay now</button>
+
+      <!-- Cloudflare Turnstile widget — must be completed before Pay Now works -->
+      <div class="turnstile-wrap">
+        <div id="turnstileWidget" class="cf-turnstile" data-sitekey="0x4AAAAAAEYbzj5zJZTVJhE8" data-callback="onTurnstileSuccess" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileExpired"></div>
+      </div>
+
+      <button class="btn btn-primary" id="modalPayBtn" disabled>Complete the check above to pay</button>
       <div class="result" id="modalFormResult"></div>
     </div>
 
@@ -867,6 +881,42 @@ themeToggle.addEventListener('click', () => {
     }
   }
 });
+
+// ============================================================
+// CLOUDFLARE TURNSTILE — bot check gating the Pay button
+// ============================================================
+let turnstileToken = null;
+
+function onTurnstileSuccess(token) {
+  turnstileToken = token;
+  const payBtn = document.getElementById('modalPayBtn');
+  if (payBtn) {
+    payBtn.disabled = false;
+    payBtn.textContent = 'Pay now';
+  }
+}
+
+function onTurnstileExpired() {
+  turnstileToken = null;
+  const payBtn = document.getElementById('modalPayBtn');
+  if (payBtn) {
+    payBtn.disabled = true;
+    payBtn.textContent = 'Complete the check above to pay';
+  }
+}
+
+function resetTurnstile() {
+  turnstileToken = null;
+  const payBtn = document.getElementById('modalPayBtn');
+  if (payBtn) {
+    payBtn.disabled = true;
+    payBtn.textContent = 'Complete the check above to pay';
+  }
+  // turnstile.reset() re-runs the widget for a fresh token on the next attempt
+  if (window.turnstile) {
+    try { window.turnstile.reset('#turnstileWidget'); } catch (e) { /* widget not ready yet */ }
+  }
+}
 
 // ============================================================
 // STATE
@@ -1163,6 +1213,8 @@ function openPurchaseModal(pkg, prefillPhone) {
   if (recipientNetWarning) recipientNetWarning.update();
   if (momoNetWarning) momoNetWarning.update();
 
+  resetTurnstile();
+
   showModalStep('modalStepForm');
   purchaseModal.classList.remove('hidden');
 }
@@ -1223,6 +1275,10 @@ function setMismatchConfirm(el, message, onConfirm){
 modalPayBtn.addEventListener('click', async () => {
   const formResult = document.getElementById('modalFormResult');
   clearResult(formResult);
+
+  if (!turnstileToken) {
+    return setResult(formResult, 'err', '<h3><i class="fas fa-exclamation-circle"></i> Verification required</h3><p>Please complete the "I\'m not a robot" check above before paying.</p>');
+  }
   
   const recipientPhone = document.getElementById('modalRecipientPhone').value.trim();
   if (!/^0\d{9}$/.test(recipientPhone)) {
@@ -1286,6 +1342,7 @@ modalPayBtn.addEventListener('click', async () => {
       recipientPhone,
       momoPhone,
       momoNetwork,
+      turnstileToken,
     };
     
     if (modalState.isChecker) {
@@ -1304,9 +1361,11 @@ modalPayBtn.addEventListener('click', async () => {
     handleChargeResponse(r.data);
   } catch(e) {
     setResult(formResult, 'err', `<h3>Payment error</h3><p>${e.data?.message||e.message}</p>`);
+    // Token is single-use — get a fresh one before the next attempt.
+    resetTurnstile();
   } finally {
-    modalPayBtn.disabled = false;
-    modalPayBtn.textContent = orig;
+    modalPayBtn.disabled = !turnstileToken;
+    modalPayBtn.textContent = turnstileToken ? 'Pay now' : 'Complete the check above to pay';
   }
 });
 

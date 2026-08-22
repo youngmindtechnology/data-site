@@ -20,6 +20,9 @@ const FLAT_MARKUP_GHS = Number(process.env.FLAT_MARKUP_GHS || 2);
 const BASE_URL = process.env.BASE_URL || 'https://youngmind.shop';
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const ADMIN_PHONE = process.env.ADMIN_PHONE || '';
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || '';
+
+app.set('trust proxy', 1); // needed so req.ip / x-forwarded-for is correct behind Cloudflare
 
 app.use(cors({ origin: BASE_URL }));
 
@@ -30,6 +33,46 @@ function requireAdmin(req, res, next) {
   const key = req.query.key || req.headers['x-admin-key'];
   if (!ADMIN_KEY || key !== ADMIN_KEY) return res.status(403).json({ status: 'error', message: 'Forbidden' });
   next();
+}
+
+// ============================================================
+// CLOUDFLARE TURNSTILE VERIFICATION
+// Confirms the request came from a real browser interaction,
+// not a script. Used on the endpoints that actually cost money
+// (starting a payment / charge), not on every route.
+// ============================================================
+async function verifyTurnstile(req, res, next) {
+  try {
+    if (!TURNSTILE_SECRET_KEY) {
+      // Not configured — don't block orders in dev/before setup, but log it.
+      console.warn('TURNSTILE_SECRET_KEY not set — skipping bot check.');
+      return next();
+    }
+
+    const token = req.body?.turnstileToken;
+    if (!token) {
+      return res.status(400).json({ status: 'error', message: 'Please complete the verification check and try again.' });
+    }
+
+    const params = new URLSearchParams();
+    params.append('secret', TURNSTILE_SECRET_KEY);
+    params.append('response', token);
+    if (req.ip) params.append('remoteip', req.ip);
+
+    const verifyRes = await axios.post(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      params
+    );
+
+    if (!verifyRes.data.success) {
+      return res.status(400).json({ status: 'error', message: 'Verification failed. Please refresh and try again.' });
+    }
+
+    next();
+  } catch (err) {
+    console.error('Turnstile verification error:', err.message);
+    return res.status(503).json({ status: 'error', message: 'Could not verify your request right now. Please try again.' });
+  }
 }
 
 function networkLabelFor(net) {
@@ -57,7 +100,6 @@ function addPaystackFee(netAmount) {
   return Math.round(gross * 100) / 100;
 }
 
-// Replace this section in server.js
 const PRICE_OVERRIDES = {
   'YELLO:1': 5.00,
   'YELLO:6': 25.50,
@@ -125,6 +167,7 @@ app.get('/api/config', (req, res) => {
       paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY,
       paystackFeePercent: PAYSTACK_FEE_PERCENT,
       passFeeToCustomer: PASS_PAYSTACK_FEE_TO_CUSTOMER,
+      turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || '',
     },
   });
 });
@@ -146,7 +189,6 @@ app.get('/api/packages', async (req, res) => {
   } catch (err) { relay(res, err); }
 });
 
-// Add this with your other constants
 const CHECKER_PRICE_OVERRIDE = 19.00;
 
 app.get('/api/checkers/products', async (req, res) => {
@@ -156,7 +198,7 @@ app.get('/api/checkers/products', async (req, res) => {
       name: p.name,
       description: p.description,
       inStock: p.inStock,
-      price: CHECKER_PRICE_OVERRIDE,  // 19.00 GHS
+      price: CHECKER_PRICE_OVERRIDE,
       payable: addPaystackFee(CHECKER_PRICE_OVERRIDE),
     }));
     res.json({ status: 'success', data: out });
@@ -165,10 +207,6 @@ app.get('/api/checkers/products', async (req, res) => {
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
-// DataMart's number probe is a live vendor-cart check; it occasionally reports
-// itself as busy (code: probe_overloaded, or a 503 VERIFY_UNAVAILABLE) rather
-// than failing the check outright. These are worth one quiet retry before we
-// bother the customer with anything.
 const VERIFY_RETRY_CODES = ['probe_overloaded', 'VERIFY_UNAVAILABLE'];
 const VERIFY_RETRY_ATTEMPTS = 2;
 const VERIFY_RETRY_DELAY_MS = 1500;
@@ -223,7 +261,7 @@ app.post('/api/verify-number', verifyThrottle, async (req, res) => {
    ORDERS — customer starts a purchase (hosted checkout redirect)
    ============================================================ */
 
-app.post('/api/orders/init', async (req, res) => {
+app.post('/api/orders/init', verifyTurnstile, async (req, res) => {
   try {
     const { type, phoneNumber, email } = req.body;
 
@@ -262,8 +300,6 @@ app.post('/api/orders/init', async (req, res) => {
       if (!prod) return res.status(400).json({ status: 'error', message: 'That checker type is not available.' });
       if (!prod.inStock) return res.status(400).json({ status: 'error', message: `${checkerType} checkers are out of stock right now.` });
 
-      // NOTE: intentionally NOT toRetail(prod.price) — prod.price is DataMart's
-      // raw cost price, not our retail price. Checkers are a fixed ₵19 retail.
       order = {
         reference: newReference(),
         type: 'checker',
@@ -307,21 +343,16 @@ app.post('/api/orders/init', async (req, res) => {
 
 /* ============================================================
    ORDERS — direct Mobile Money charge (modal flow)
-   Customer enters a beneficiary number + a MoMo number/network and
-   pays right there via a USSD/approval prompt or OTP, no redirect.
    ============================================================ */
 
-// Replace the /api/orders/charge/init route in server.js
-app.post('/api/orders/charge/init', async (req, res) => {
+app.post('/api/orders/charge/init', verifyTurnstile, async (req, res) => {
   try {
     const { type, network, capacity, recipientPhone, momoPhone, momoNetwork, checkerType, skipSms } = req.body;
 
-    // Allow both data and checker types
     if (type !== 'data' && type !== 'checker') {
       return res.status(400).json({ status: 'error', message: 'This payment flow supports data bundles and result checkers only.' });
     }
 
-    // Validation for data bundles
     if (type === 'data') {
       if (!isValidPhone(recipientPhone)) {
         return res.status(400).json({ status: 'error', message: 'Enter a valid beneficiary number, e.g. 0551234567.' });
@@ -334,7 +365,6 @@ app.post('/api/orders/charge/init', async (req, res) => {
       }
     }
 
-    // Validation for checkers
     if (type === 'checker') {
       if (!isValidPhone(recipientPhone)) {
         return res.status(400).json({ status: 'error', message: 'Enter a valid phone number for the checker delivery.' });
@@ -454,7 +484,6 @@ app.post('/admin/api/backfill-cost', requireAdmin, async (req, res) => {
       datamart.getCheckerProducts(),
     ]);
 
-    // network -> capacity -> current DataMart cost
     const packageCostMap = {};
     Object.keys(pkgRes.data || {}).forEach((net) => {
       packageCostMap[net] = {};
@@ -463,7 +492,6 @@ app.post('/admin/api/backfill-cost', requireAdmin, async (req, res) => {
       });
     });
 
-    // checkerType -> current DataMart cost
     const checkerCostMap = {};
     (checkerRes.data || []).forEach((p) => { checkerCostMap[p.name] = Number(p.price); });
 
@@ -482,7 +510,6 @@ app.post('/admin/api/backfill-cost', requireAdmin, async (req, res) => {
         const overridden = Object.prototype.hasOwnProperty.call(PRICE_OVERRIDES, key);
 
         if (!overridden) {
-          // Exact — invert the markup formula from what was actually charged.
           const netBeforeFee = PASS_PAYSTACK_FEE_TO_CUSTOMER
             ? Number(order.amount) * (1 - PAYSTACK_FEE_PERCENT / 100)
             : Number(order.amount);
@@ -491,7 +518,6 @@ app.post('/admin/api/backfill-cost', requireAdmin, async (req, res) => {
           order.costEstimated = false;
           updated++;
         } else {
-          // Overridden retail price isn't derived from cost — estimate with today's price.
           const liveCost = packageCostMap[order.network]?.[String(order.capacity)];
           if (liveCost === undefined) { skipped++; continue; }
           order.costPrice = liveCost;
@@ -499,7 +525,6 @@ app.post('/admin/api/backfill-cost', requireAdmin, async (req, res) => {
           estimated++;
         }
       } else if (order.type === 'checker') {
-        // Checkers are always sold at a fixed retail, unrelated to cost at order time.
         const liveCost = checkerCostMap[order.checkerType];
         if (liveCost === undefined) { skipped++; continue; }
         order.costPrice = liveCost;
@@ -546,7 +571,6 @@ app.post('/api/orders/charge/otp', async (req, res) => {
       });
     }
     if (chargeStatus === 'send_otp') {
-      // Some networks issue a second OTP round.
       return res.json({ status: 'success', data: { reference, chargeStatus: 'send_otp' } });
     }
 
@@ -559,12 +583,6 @@ app.post('/api/orders/charge/otp', async (req, res) => {
   } catch (err) { relay(res, err); }
 });
 
-/**
- * The customer taps "I've completed payment" — this must NEVER just echo
- * back our locally-stored status, because that status only changes once
- * Paystack's webhook fires (or this route runs). We ask Paystack directly
- * every time, and only ever report success once Paystack itself says so.
- */
 app.post('/api/orders/charge/verify', async (req, res) => {
   try {
     const { reference } = req.body;
@@ -573,7 +591,6 @@ app.post('/api/orders/charge/verify', async (req, res) => {
     const order = await orders.get(reference);
     if (!order) return res.status(404).json({ status: 'error', message: 'Order not found.' });
 
-    // Already resolved (e.g. the webhook beat us to it) — no need to re-ask Paystack.
     if (order.status === 'fulfilled') {
       return res.json({ status: 'success', data: { reference, chargeStatus: 'success' } });
     }
@@ -589,7 +606,6 @@ app.post('/api/orders/charge/verify', async (req, res) => {
       const chargeRes = await paystack.checkPendingCharge(reference);
       chargeStatus = (chargeRes.data && chargeRes.data.status) || 'pending';
     } catch (checkErr) {
-      // Fall back to a plain transaction verify if the charge lookup itself fails.
       try {
         const v = await paystack.verifyTransaction(reference);
         chargeStatus = v.data && v.data.status === 'success' ? 'success' : 'pending';
@@ -615,7 +631,6 @@ app.post('/api/orders/charge/verify', async (req, res) => {
       return res.json({ status: 'success', data: { reference, chargeStatus: 'failed', message: 'This payment was not approved.' } });
     }
 
-    // Still pay_offline / send_otp / pending — nothing confirmed yet. Do not tell the customer it's done.
     return res.json({
       status: 'success',
       data: {
@@ -858,10 +873,6 @@ app.get('/admin/api/balance', requireAdmin, async (req, res) => {
   try { res.json(await datamart.getBalance()); } catch (err) { relay(res, err); }
 });
 
-// DELETE order by reference
-// DELETE order by reference — routed through the same per-reference
-// lock that fulfillOrder() uses, so a delete can never race a
-// fulfillment write and get silently overwritten.
 app.delete('/admin/api/orders/:reference', requireAdmin, async (req, res) => {
   const reference = req.params.reference;
   const result = await orders.withLock(reference, async () => {
