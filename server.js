@@ -157,6 +157,16 @@ function verifyThrottle(req, res, next) {
 }
 
 /* ============================================================
+   HEALTH CHECK — pinged by an external cron service to keep
+   this Render free-tier instance from spinning down. Cheap on
+   purpose: no DB calls, no external API calls, just confirms
+   the Node process is alive.
+   ============================================================ */
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', time: new Date().toISOString() });
+});
+
+/* ============================================================
    PUBLIC CATALOG
    ============================================================ */
 
