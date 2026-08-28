@@ -1009,6 +1009,36 @@ function esc(s){
 // ============================================================
 // DESCRIBE ORDER
 // ============================================================
+// Maps internal statuses to what the customer actually sees.
+// "fulfillment_failed" means payment succeeded but delivery hit a snag —
+// that must never read as "failed" to the customer, since no money was lost
+// and it's normally resolved automatically or by support. Only a genuine
+// payment_failed/failed (no charge went through) should say "failed".
+function customerStatusLabel(status){
+  const map = {
+    fulfilled: 'Delivered',
+    completed: 'Delivered',
+    delivered: 'Delivered',
+    fulfillment_failed: 'Processing',
+    paid: 'Processing',
+    pending: 'Processing',
+    processing: 'Processing',
+    waiting: 'Processing',
+    payment_failed: 'Not completed',
+    failed: 'Not completed',
+  };
+  return map[status] || 'Processing';
+}
+function customerStatusClass(status){
+  const map = {
+    fulfilled: 'completed', completed: 'completed', delivered: 'completed',
+    fulfillment_failed: 'processing', paid: 'processing', pending: 'processing',
+    processing: 'processing', waiting: 'processing',
+    payment_failed: 'failed', failed: 'failed',
+  };
+  return map[status] || 'processing';
+}
+
 function describeOrder(d){
   const status = d.status || d.orderStatus || 'unknown';
   const done = ['fulfilled','completed','delivered'].includes(status);
@@ -1017,7 +1047,7 @@ function describeOrder(d){
 
   let rows = `
     <div class="row"><span>Reference</span><span>${d.reference||d.orderReference||'N/A'}</span></div>
-    <div class="row"><span>Status</span><span class="badge ${status}">${status}</span></div>
+    <div class="row"><span>Status</span><span class="badge ${customerStatusClass(status)}">${customerStatusLabel(status)}</span></div>
   `;
   if (d.capacity || d.network) {
     rows += `<div class="row"><span>Bundle</span><span>${netLabel(d.network)} ${d.capacity||''}GB</span></div>`;
