@@ -738,6 +738,70 @@ async function fulfillOrder(reference) {
   });
 }
 
+const DELIVERY_CHECK_INTERVAL_MS = 5 * 60 * 1000;      // every 5 minutes
+const DELAY_NOTICE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 1 day
+const DELIVERED_STATUSES = ['delivered', 'completed'];
+
+async function checkPendingDeliveries() {
+  let candidates;
+  try {
+    candidates = await orders.listPendingDeliveryChecks();
+  } catch (err) {
+    console.error('checkPendingDeliveries: query failed:', err.message);
+    return;
+  }
+
+  const now = Date.now();
+
+  for (const raw of candidates) {
+    await orders.withLock(raw.reference, async () => {
+      const order = await orders.get(raw.reference);
+      if (!order || order.deliveryConfirmed) return;
+
+      let liveStatus;
+      try {
+        const r = await datamart.getOrderStatus(order.dataMartReference);
+        liveStatus = r.data?.orderStatus;
+      } catch (err) {
+        console.error(`Delivery check failed for ${order.reference}:`, err.response?.data?.message || err.message);
+        return;
+      }
+
+      order.lastLiveStatus = liveStatus;
+      order.lastCheckedAt = new Date().toISOString();
+
+      const isDelivered = DELIVERED_STATUSES.includes(String(liveStatus || '').toLowerCase());
+
+      if (isDelivered) {
+        order.deliveryConfirmed = true;
+        await orders.save(order);
+
+        if (!order.deliveredSmsSent) {
+          order.deliveredSmsSent = true;
+          await orders.save(order);
+
+          const msg = `Your ${order.capacity}GB ${networkLabelFor(order.network)} bundle to ${order.phoneNumber} has been delivered. Ref: ${order.reference} - Young Mind Data Plug`;
+          sms.sendSms(order.phoneNumber, msg)
+            .catch((e) => console.error(`Delivered SMS failed for ${order.reference}:`, e.message));
+        }
+        return;
+      }
+
+      const ageMs = now - new Date(order.createdAt).getTime();
+      if (ageMs >= DELAY_NOTICE_THRESHOLD_MS && !order.delayNoticeSent) {
+        order.delayNoticeSent = true;
+        await orders.save(order);
+
+        const msg = `Sorry for the delay — your order (Ref: ${order.reference}) is still being processed. We're on it and will notify you once it's delivered. - Young Mind Data Plug`;
+        sms.sendSms(order.phoneNumber, msg)
+          .catch((e) => console.error(`Delay SMS failed for ${order.reference}:`, e.message));
+      } else {
+        await orders.save(order);
+      }
+    });
+  }
+}
+
 app.get('/api/payment/callback', async (req, res) => {
   const reference = req.query.reference || req.query.trxref;
   try {
@@ -927,6 +991,8 @@ connectDB()
     .then(() => {
         app.listen(PORT, () => {
             console.log(`🚀 Young Mind Data Plug running at ${BASE_URL}`);
+            checkPendingDeliveries();
+            setInterval(checkPendingDeliveries, DELIVERY_CHECK_INTERVAL_MS);
         });
     })
     .catch((err) => {
